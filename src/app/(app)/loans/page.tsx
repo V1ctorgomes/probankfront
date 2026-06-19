@@ -71,7 +71,9 @@ export default function LoansPage() {
   const { data: customers = [] } = useQuery({
     queryKey: ['customers'],
     queryFn: async () => {
-      const { data } = await api.get<Customer[]>('/customers');
+      const { data } = await api.get<Customer[]>('/customers', {
+        params: { onlyActive: 'true' },
+      });
       return data;
     },
   });

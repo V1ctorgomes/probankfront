@@ -176,13 +176,16 @@ export default function CustomersPage() {
                 </TableRow>
               ) : (
                 customers.map((customer) => (
-                  <TableRow key={customer.id}>
+                  <TableRow
+                    key={customer.id}
+                    className={customer.ativo ? undefined : 'opacity-60'}
+                  >
                     <TableCell className="font-medium">{customer.nome}</TableCell>
                     <TableCell>{formatCpf(customer.cpf)}</TableCell>
                     <TableCell>{customer.telefone ?? '-'}</TableCell>
                     <TableCell>
                       <Badge variant={customer.ativo ? 'default' : 'secondary'}>
-                        {customer.ativo ? 'Ativo' : 'Inativo'}
+                        {customer.ativo ? 'Ativo' : 'Desativado'}
                       </Badge>
                     </TableCell>
                     {canEdit && (
