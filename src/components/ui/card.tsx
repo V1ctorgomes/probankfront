@@ -6,7 +6,7 @@ export function Card({
 }: React.HTMLAttributes<HTMLDivElement>) {
   return (
     <div
-      className={cn('pb-panel overflow-hidden', className)}
+      className={cn('pb-panel', className)}
       {...props}
     />
   );
@@ -18,7 +18,7 @@ export function CardHeader({
 }: React.HTMLAttributes<HTMLDivElement>) {
   return (
     <div
-      className={cn('border-b border-border/70 px-5 py-4', className)}
+      className={cn('border-b border-border/70 px-3 py-3 sm:px-5 sm:py-4', className)}
       {...props}
     />
   );
@@ -49,7 +49,7 @@ export function CardContent({
   className,
   ...props
 }: React.HTMLAttributes<HTMLDivElement>) {
-  return <div className={cn('px-5 py-4', className)} {...props} />;
+  return <div className={cn('px-3 py-3 sm:px-5 sm:py-4', className)} {...props} />;
 }
 
 export function CardFooter({
@@ -58,7 +58,10 @@ export function CardFooter({
 }: React.HTMLAttributes<HTMLDivElement>) {
   return (
     <div
-      className={cn('border-t border-border/70 bg-muted/40 px-5 py-4', className)}
+      className={cn(
+        'border-t border-border/70 bg-muted/40 px-3 py-3 sm:px-5 sm:py-4',
+        className,
+      )}
       {...props}
     />
   );

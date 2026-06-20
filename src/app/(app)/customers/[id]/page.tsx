@@ -50,7 +50,7 @@ export default function CustomerDetailPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <Link
           href="/customers"
           className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground"
@@ -60,7 +60,7 @@ export default function CustomerDetailPage() {
         </Link>
         <Link
           href={`/customers/${customer.id}/edit`}
-          className="inline-flex h-8 items-center rounded-md border px-3 text-sm"
+          className="inline-flex h-9 w-full items-center justify-center rounded-md border px-3 text-sm sm:h-8 sm:w-auto"
         >
           <Pencil className="mr-2 h-4 w-4" />
           Editar
@@ -70,8 +70,8 @@ export default function CustomerDetailPage() {
       <div className="grid gap-6 lg:grid-cols-3">
         <Card className="lg:col-span-2">
           <CardHeader>
-            <div className="flex items-center gap-3">
-              <CardTitle className="text-2xl">{customer.nome}</CardTitle>
+            <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+              <CardTitle className="text-xl sm:text-2xl">{customer.nome}</CardTitle>
               <Badge variant={customer.ativo ? 'default' : 'secondary'}>
                 {customer.ativo ? 'Ativo' : 'Desativado'}
               </Badge>
@@ -110,7 +110,7 @@ export default function CustomerDetailPage() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-3xl font-bold text-amber-700">
+            <p className="text-2xl font-bold text-amber-700 sm:text-3xl">
               {formatCurrency(customer.saldoDevedor ?? 0)}
             </p>
             <p className="mt-2 text-sm text-muted-foreground">

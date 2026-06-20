@@ -27,7 +27,7 @@ export function Pagination({
       <p className="text-sm text-muted-foreground">
         Mostrando {start}–{end} de {totalItems}
       </p>
-      <div className="flex items-center gap-2">
+      <div className="flex w-full items-center justify-between gap-2 sm:w-auto sm:justify-start">
         <Button
           type="button"
           size="sm"

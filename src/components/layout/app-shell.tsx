@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   LayoutDashboard,
   Users,
@@ -37,6 +37,18 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const user = getUser<AuthUser>();
   const [mobileOpen, setMobileOpen] = useState(false);
 
+  useEffect(() => {
+    setMobileOpen(false);
+  }, [pathname]);
+
+  useEffect(() => {
+    if (!mobileOpen) return;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [mobileOpen]);
+
   const handleLogout = () => {
     clearAuth();
     router.push('/login');
@@ -65,7 +77,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           >
             <span
               className={cn(
-                'flex h-8 w-8 items-center justify-center rounded-lg transition-colors',
+                'flex h-8 w-8 shrink-0 items-center justify-center rounded-lg transition-colors',
                 active
                   ? 'bg-sidebar-active/20 text-sidebar-active'
                   : 'bg-white/5 text-sidebar-muted group-hover:text-sidebar-foreground',
@@ -81,8 +93,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   );
 
   return (
-    <div className="flex min-h-screen bg-background">
-      <aside className="hidden w-72 flex-col bg-sidebar p-5 text-sidebar-foreground md:flex">
+    <div className="flex min-h-[100dvh] overflow-x-hidden bg-background">
+      <aside className="hidden w-72 shrink-0 flex-col bg-sidebar p-5 text-sidebar-foreground md:flex">
         <div className="mb-8 rounded-2xl border border-white/10 bg-white/5 p-4">
           <div className="flex items-center gap-3">
             <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-sidebar-active/20 text-sidebar-active">
@@ -101,7 +113,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
         <div className="mt-auto space-y-3 border-t border-white/10 pt-4">
           <div className="rounded-xl bg-white/5 px-3 py-3">
-            <p className="text-sm font-medium text-white">{user?.nome}</p>
+            <p className="truncate text-sm font-medium text-white">{user?.nome}</p>
             <p className="text-xs text-sidebar-muted">
               {user?.role ? userRoleLabel[user.role] : ''}
             </p>
@@ -123,27 +135,27 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             className="absolute inset-0 bg-slate-950/60 backdrop-blur-sm"
             onClick={() => setMobileOpen(false)}
           />
-          <aside className="relative flex h-full w-80 flex-col bg-sidebar p-5 text-sidebar-foreground shadow-2xl">
-            <div className="mb-6 flex items-center justify-between">
-              <div>
-                <p className="text-lg font-bold text-white">Probank</p>
-                <p className="text-xs text-sidebar-muted">Menu</p>
+          <aside className="relative flex h-full w-[min(100%,20rem)] max-w-full flex-col bg-sidebar p-5 pb-safe-bottom text-sidebar-foreground shadow-2xl">
+            <div className="mb-6 flex items-center justify-between gap-3">
+              <div className="min-w-0">
+                <p className="truncate text-lg font-bold text-white">Probank</p>
+                <p className="truncate text-xs text-sidebar-muted">{user?.nome}</p>
               </div>
               <Button
                 variant="ghost"
                 size="icon"
-                className="text-sidebar-foreground hover:bg-white/10 hover:text-white"
+                className="shrink-0 text-sidebar-foreground hover:bg-white/10 hover:text-white"
                 onClick={() => setMobileOpen(false)}
               >
                 <X className="h-5 w-5" />
               </Button>
             </div>
-            <nav className="flex flex-1 flex-col gap-1.5">
+            <nav className="flex flex-1 flex-col gap-1.5 overflow-y-auto">
               <NavLinks onNavigate={() => setMobileOpen(false)} />
             </nav>
             <Button
               variant="outline"
-              className="w-full border-white/15 bg-transparent text-sidebar-foreground"
+              className="mt-4 w-full border-white/15 bg-transparent text-sidebar-foreground"
               onClick={handleLogout}
             >
               Sair
@@ -152,18 +164,24 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </div>
       )}
 
-      <div className="flex min-h-screen flex-1 flex-col">
-        <header className="flex items-center gap-3 border-b border-border bg-card/80 px-4 py-3 backdrop-blur md:hidden">
-          <Button variant="outline" size="icon" onClick={() => setMobileOpen(true)}>
+      <div className="flex min-h-[100dvh] min-w-0 flex-1 flex-col">
+        <header className="sticky top-0 z-40 flex items-center gap-3 border-b border-border bg-card/95 px-3 py-3 backdrop-blur pb-safe-top md:hidden">
+          <Button
+            variant="outline"
+            size="icon"
+            className="shrink-0"
+            onClick={() => setMobileOpen(true)}
+            aria-label="Abrir menu"
+          >
             <Menu className="h-5 w-5" />
           </Button>
-          <div>
-            <p className="font-semibold text-foreground">Probank</p>
-            <p className="text-xs text-muted-foreground">{user?.nome}</p>
+          <div className="min-w-0 flex-1">
+            <p className="truncate font-semibold text-foreground">Probank</p>
+            <p className="truncate text-xs text-muted-foreground">{user?.nome}</p>
           </div>
         </header>
-        <main className="flex-1 overflow-auto p-4 md:p-8">
-          <div className="mx-auto max-w-7xl">{children}</div>
+        <main className="min-w-0 flex-1 overflow-x-hidden p-3 pb-safe-bottom sm:p-4 md:p-8">
+          <div className="mx-auto w-full max-w-7xl">{children}</div>
         </main>
       </div>
     </div>

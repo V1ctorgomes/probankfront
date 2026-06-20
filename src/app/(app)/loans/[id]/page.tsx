@@ -95,7 +95,9 @@ export default function LoanDetailPage() {
           Voltar
         </Link>
         {canEdit && loan.status === 'ATIVO' && (
-          <Button onClick={() => setOpen(true)}>Registrar pagamento</Button>
+          <Button className="w-full sm:w-auto" onClick={() => setOpen(true)}>
+            Registrar pagamento
+          </Button>
         )}
       </div>
 
@@ -136,8 +138,8 @@ export default function LoanDetailPage() {
       <div className="grid gap-6 lg:grid-cols-3">
         <Card className="lg:col-span-2">
           <CardHeader>
-            <div className="flex items-center gap-3">
-              <CardTitle>
+            <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+              <CardTitle className="text-lg sm:text-base">
                 {'nome' in (loan.customer ?? {})
                   ? String((loan.customer as { nome: string }).nome)
                   : 'Empréstimo'}
@@ -184,7 +186,7 @@ export default function LoanDetailPage() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-3xl font-bold text-amber-700">
+            <p className="text-2xl font-bold text-amber-700 sm:text-3xl">
               {formatCurrency(
                 loan.principalAtual + (loan.jurosPendentes ?? 0),
               )}

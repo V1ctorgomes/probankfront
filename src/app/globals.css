@@ -64,10 +64,11 @@
 
   html {
     @apply scroll-smooth antialiased;
+    -webkit-text-size-adjust: 100%;
   }
 
   body {
-    @apply bg-background text-foreground font-sans;
+    @apply overflow-x-hidden bg-background text-foreground font-sans;
   }
 }
 
@@ -78,5 +79,19 @@
 
   .pb-input {
     @apply h-10 w-full rounded-lg border border-input bg-white px-3 text-sm text-foreground outline-none transition placeholder:text-muted-foreground focus:border-primary focus:ring-2 focus:ring-ring/25 disabled:cursor-not-allowed disabled:opacity-50;
+  }
+
+  .pb-safe-bottom {
+    padding-bottom: max(0.75rem, env(safe-area-inset-bottom));
+  }
+
+  .pb-safe-top {
+    padding-top: max(0rem, env(safe-area-inset-top));
+  }
+
+  .pb-scroll-x {
+    @apply w-full overflow-x-auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
   }
 }

@@ -307,7 +307,7 @@ export default function CustomersPage() {
         placeholder="Buscar por nome ou CPF"
         value={search}
         onChange={(event) => setSearch(event.target.value)}
-        className="max-w-sm"
+        className="w-full max-w-sm"
       />
 
       <Card>

@@ -81,7 +81,7 @@ export function DialogContent({
         role="dialog"
         aria-modal="true"
         className={cn(
-          'fixed left-1/2 top-1/2 z-50 w-[calc(100%-2rem)] max-w-lg -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-border bg-card p-6 shadow-2xl',
+          'fixed inset-x-0 bottom-0 z-50 max-h-[min(90dvh,calc(100%-1rem))] w-full overflow-y-auto rounded-t-2xl border border-border bg-card p-4 pb-safe-bottom shadow-2xl sm:inset-x-auto sm:bottom-auto sm:left-1/2 sm:top-1/2 sm:w-[calc(100%-2rem)] sm:max-w-lg sm:-translate-x-1/2 sm:-translate-y-1/2 sm:rounded-2xl sm:p-6',
           className,
         )}
         onClick={(event) => event.stopPropagation()}
@@ -136,7 +136,7 @@ export function DialogFooter({
 }: React.HTMLAttributes<HTMLDivElement>) {
   return (
     <div
-      className={cn('mt-6 flex justify-end gap-2', className)}
+      className={cn('mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end', className)}
       {...props}
     />
   );

@@ -206,7 +206,7 @@ export function CpfConsulta() {
 
   return (
     <>
-      <Card className="w-full max-w-md">
+      <Card className="w-full">
         <CardContent className="pt-6">
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
@@ -235,7 +235,7 @@ export function CpfConsulta() {
       </Card>
 
       {result && (
-        <div className="w-full max-w-2xl">
+        <div className="w-full">
           <p className="mb-4 text-center text-xs text-muted-foreground">
             Consulta para CPF {formatCpf(searchedCpf.replace(/\D/g, ''))} ·{' '}
             <button

@@ -16,7 +16,7 @@ export function FilterBar({
       <CardContent className="py-4">
         <form
           onSubmit={onSubmit}
-          className="grid gap-4 md:grid-cols-[minmax(160px,200px)_minmax(240px,1fr)_auto] md:items-end"
+          className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-[minmax(160px,200px)_minmax(240px,1fr)_auto] md:items-end"
         >
           {children}
         </form>
