@@ -21,6 +21,19 @@ export interface Customer {
   observacoes?: string | null;
   ativo: boolean;
   createdAt: string;
+  saldoDevedor?: number;
+  loans?: Loan[];
+}
+
+export interface InterestCycle {
+  id: string;
+  loanId: string;
+  referencia: string;
+  principalBase: number;
+  jurosGerado: number;
+  jurosPago: number;
+  jurosPendente?: number;
+  createdAt: string;
 }
 
 export interface Loan {
@@ -34,6 +47,8 @@ export interface Loan {
   createdAt: string;
   jurosPendentes?: number;
   customer?: { id: string; nome: string; cpf: string };
+  interestCycles?: InterestCycle[];
+  payments?: Payment[];
 }
 
 export interface Payment {
@@ -71,4 +86,20 @@ export interface AuditLog {
   ip?: string | null;
   createdAt: string;
   user?: { id: string; nome: string; email: string } | null;
+}
+
+export interface ReceiptsData {
+  month: string;
+  pending: Array<{
+    cycleId: string;
+    loanId: string;
+    referencia: string;
+    jurosPendente: number;
+    principalAtual: number;
+    overdue: boolean;
+    customer: { id: string; nome: string; cpf: string };
+  }>;
+  pendingTotal: number;
+  received: Array<Payment & { customer: { id: string; nome: string; cpf: string } }>;
+  receivedTotal: number;
 }

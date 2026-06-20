@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -199,7 +200,7 @@ export default function LoansPage() {
                 <TableHead>Taxa</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Início</TableHead>
-                {canEdit && <TableHead />}
+                {canEdit && <TableHead>Ações</TableHead>}
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -214,7 +215,18 @@ export default function LoansPage() {
               ) : (
                 loans.map((loan) => (
                   <TableRow key={loan.id}>
-                    <TableCell>{loan.customer?.nome ?? '-'}</TableCell>
+                    <TableCell>
+                      {loan.customer ? (
+                        <Link
+                          href={`/customers/${loan.customer.id}`}
+                          className="text-primary hover:underline"
+                        >
+                          {loan.customer.nome}
+                        </Link>
+                      ) : (
+                        '-'
+                      )}
+                    </TableCell>
                     <TableCell>{formatCurrency(loan.principalOriginal)}</TableCell>
                     <TableCell>{formatCurrency(loan.principalAtual)}</TableCell>
                     <TableCell>
@@ -228,7 +240,13 @@ export default function LoansPage() {
                     </TableCell>
                     <TableCell>{formatDate(loan.dataInicio)}</TableCell>
                     {canEdit && (
-                      <TableCell>
+                      <TableCell className="flex flex-wrap gap-2">
+                        <Link
+                          href={`/loans/${loan.id}`}
+                          className="inline-flex h-7 items-center rounded-md border px-2.5 text-sm"
+                        >
+                          Ver
+                        </Link>
                         {loan.status === 'ATIVO' && (
                           <Button
                             size="sm"

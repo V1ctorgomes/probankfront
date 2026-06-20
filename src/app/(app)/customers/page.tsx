@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -8,7 +9,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import api from '@/lib/api';
 import type { Customer } from '@/types';
-import { formatCpf } from '@/lib/format';
+import { formatCpf, formatCurrency } from '@/lib/format';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
@@ -88,6 +89,14 @@ export default function CustomersPage() {
     },
   });
 
+  const activateMutation = useMutation({
+    mutationFn: (id: string) => api.post(`/customers/${id}/activate`),
+    onSuccess: () => {
+      toast.success('Cliente reativado');
+      queryClient.invalidateQueries({ queryKey: ['customers'] });
+    },
+  });
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -161,18 +170,19 @@ export default function CustomersPage() {
                 <TableHead>Nome</TableHead>
                 <TableHead>CPF</TableHead>
                 <TableHead>Telefone</TableHead>
+                <TableHead>Saldo devedor</TableHead>
                 <TableHead>Status</TableHead>
-                {canEdit && <TableHead />}
+                {canEdit && <TableHead>Ações</TableHead>}
               </TableRow>
             </TableHeader>
             <TableBody>
               {isLoading ? (
                 <TableRow>
-                  <TableCell colSpan={5}>Carregando...</TableCell>
+                  <TableCell colSpan={6}>Carregando...</TableCell>
                 </TableRow>
               ) : customers.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={5}>Nenhum cliente encontrado</TableCell>
+                  <TableCell colSpan={6}>Nenhum cliente encontrado</TableCell>
                 </TableRow>
               ) : (
                 customers.map((customer) => (
@@ -180,23 +190,45 @@ export default function CustomersPage() {
                     key={customer.id}
                     className={customer.ativo ? undefined : 'opacity-60'}
                   >
-                    <TableCell className="font-medium">{customer.nome}</TableCell>
+                    <TableCell className="font-medium">
+                      <Link
+                        href={`/customers/${customer.id}`}
+                        className="text-primary hover:underline"
+                      >
+                        {customer.nome}
+                      </Link>
+                    </TableCell>
                     <TableCell>{formatCpf(customer.cpf)}</TableCell>
                     <TableCell>{customer.telefone ?? '-'}</TableCell>
+                    <TableCell>{formatCurrency(customer.saldoDevedor ?? 0)}</TableCell>
                     <TableCell>
                       <Badge variant={customer.ativo ? 'default' : 'secondary'}>
                         {customer.ativo ? 'Ativo' : 'Desativado'}
                       </Badge>
                     </TableCell>
                     {canEdit && (
-                      <TableCell>
-                        {customer.ativo && (
+                      <TableCell className="flex flex-wrap gap-2">
+                        <Link
+                          href={`/customers/${customer.id}`}
+                          className="inline-flex h-7 items-center rounded-md border px-2.5 text-sm"
+                        >
+                          Ver
+                        </Link>
+                        {customer.ativo ? (
                           <Button
                             size="sm"
                             variant="outline"
                             onClick={() => deactivateMutation.mutate(customer.id)}
                           >
                             Desativar
+                          </Button>
+                        ) : (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => activateMutation.mutate(customer.id)}
+                          >
+                            Reativar
                           </Button>
                         )}
                       </TableCell>
