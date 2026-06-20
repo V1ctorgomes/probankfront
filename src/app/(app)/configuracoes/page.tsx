@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -10,7 +10,6 @@ import api from '@/lib/api';
 import type { Category } from '@/types';
 import { getUser } from '@/lib/auth';
 import type { AuthUser } from '@/types';
-import { transactionTypeLabel } from '@/lib/labels';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
@@ -40,6 +39,63 @@ const schema = z.object({
 
 type FormData = z.infer<typeof schema>;
 
+type CategoryTableProps = {
+  categories: Category[];
+  isLoading: boolean;
+  emptyMessage: string;
+  onToggle: (id: string, ativo: boolean) => void;
+};
+
+function CategoryTable({
+  categories,
+  isLoading,
+  emptyMessage,
+  onToggle,
+}: CategoryTableProps) {
+  return (
+    <Table>
+      <TableHeader>
+        <TableRow>
+          <TableHead>Nome</TableHead>
+          <TableHead>Situação</TableHead>
+          <TableHead>Ações</TableHead>
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        {isLoading ? (
+          <TableRow>
+            <TableCell colSpan={3}>Carregando...</TableCell>
+          </TableRow>
+        ) : categories.length === 0 ? (
+          <TableRow>
+            <TableCell colSpan={3}>{emptyMessage}</TableCell>
+          </TableRow>
+        ) : (
+          categories.map((category) => (
+            <TableRow key={category.id}>
+              <TableCell>{category.nome}</TableCell>
+              <TableCell>
+                <Badge variant={category.ativo ? 'secondary' : 'destructive'}>
+                  {category.ativo ? 'Ativa' : 'Inativa'}
+                </Badge>
+              </TableCell>
+              <TableCell>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => onToggle(category.id, !category.ativo)}
+                >
+                  {category.ativo ? 'Desativar' : 'Reativar'}
+                </Button>
+              </TableCell>
+            </TableRow>
+          ))
+        )}
+      </TableBody>
+    </Table>
+  );
+}
+
 export default function ConfiguracoesPage() {
   const [open, setOpen] = useState(false);
   const [consultaUrl, setConsultaUrl] = useState('/consulta');
@@ -58,6 +114,16 @@ export default function ConfiguracoesPage() {
       return data;
     },
   });
+
+  const incomeCategories = useMemo(
+    () => categories.filter((category) => category.tipo === 'INCOME'),
+    [categories],
+  );
+
+  const expenseCategories = useMemo(
+    () => categories.filter((category) => category.tipo === 'EXPENSE'),
+    [categories],
+  );
 
   const {
     register,
@@ -89,6 +155,10 @@ export default function ConfiguracoesPage() {
       queryClient.invalidateQueries({ queryKey: ['categories'] });
     },
   });
+
+  const handleToggle = (id: string, ativo: boolean) => {
+    toggleMutation.mutate({ id, ativo });
+  };
 
   if (!isAdmin) {
     return (
@@ -147,58 +217,29 @@ export default function ConfiguracoesPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Categorias</CardTitle>
+          <CardTitle>Categorias de entrada ({incomeCategories.length})</CardTitle>
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Nome</TableHead>
-                <TableHead>Tipo</TableHead>
-                <TableHead>Situação</TableHead>
-                <TableHead>Ações</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {isLoading ? (
-                <TableRow>
-                  <TableCell colSpan={4}>Carregando...</TableCell>
-                </TableRow>
-              ) : categories.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={4}>Nenhuma categoria cadastrada</TableCell>
-                </TableRow>
-              ) : (
-                categories.map((category) => (
-                  <TableRow key={category.id}>
-                    <TableCell>{category.nome}</TableCell>
-                    <TableCell>
-                      {transactionTypeLabel[category.tipo] ?? category.tipo}
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant={category.ativo ? 'secondary' : 'destructive'}>
-                        {category.ativo ? 'Ativa' : 'Inativa'}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() =>
-                          toggleMutation.mutate({
-                            id: category.id,
-                            ativo: !category.ativo,
-                          })
-                        }
-                      >
-                        {category.ativo ? 'Desativar' : 'Reativar'}
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
+          <CategoryTable
+            categories={incomeCategories}
+            isLoading={isLoading}
+            emptyMessage="Nenhuma categoria de entrada cadastrada"
+            onToggle={handleToggle}
+          />
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Categorias de saída ({expenseCategories.length})</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <CategoryTable
+            categories={expenseCategories}
+            isLoading={isLoading}
+            emptyMessage="Nenhuma categoria de saída cadastrada"
+            onToggle={handleToggle}
+          />
         </CardContent>
       </Card>
 

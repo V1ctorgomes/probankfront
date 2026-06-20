@@ -9,8 +9,8 @@ import { z } from 'zod';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import api from '@/lib/api';
-import type { ReceiptsData } from '@/types';
-import { formatCurrency, formatDate } from '@/lib/format';
+import type { Customer, ReceiptsData } from '@/types';
+import { formatCurrency, formatCpf, formatDate } from '@/lib/format';
 import { getUser } from '@/lib/auth';
 import type { AuthUser } from '@/types';
 import { Button } from '@/components/ui/button';
@@ -18,6 +18,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { SimpleSelect } from '@/components/ui/simple-select';
 import {
   Dialog,
   DialogContent,
@@ -48,6 +49,7 @@ export default function ReceiptsPage() {
 
   const month =
     searchParams.get('month') ?? new Date().toISOString().slice(0, 7);
+  const customerId = searchParams.get('customerId') ?? '';
   const [selectedLoan, setSelectedLoan] = useState<{
     loanId: string;
     jurosPendente: number;
@@ -56,14 +58,30 @@ export default function ReceiptsPage() {
   const [open, setOpen] = useState(false);
 
   const { data, isLoading } = useQuery({
-    queryKey: ['receipts', month],
+    queryKey: ['receipts', month, customerId],
     queryFn: async () => {
       const { data } = await api.get<ReceiptsData>('/receipts', {
-        params: { month },
+        params: {
+          month,
+          customerId: customerId || undefined,
+        },
       });
       return data;
     },
   });
+
+  const { data: customers = [] } = useQuery({
+    queryKey: ['customers', 'receipts-filter'],
+    queryFn: async () => {
+      const { data } = await api.get<Customer[]>('/customers');
+      return data;
+    },
+  });
+
+  const customerOptions = customers.map((customer) => ({
+    value: customer.id,
+    label: `${customer.nome} — CPF ${formatCpf(customer.cpf)}`,
+  }));
 
   const {
     register,
@@ -81,6 +99,7 @@ export default function ReceiptsPage() {
       queryClient.invalidateQueries({ queryKey: ['loans'] });
       queryClient.invalidateQueries({ queryKey: ['customers'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+      queryClient.invalidateQueries({ queryKey: ['transactions'] });
       reset();
       setOpen(false);
       setSelectedLoan(null);
@@ -102,13 +121,35 @@ export default function ReceiptsPage() {
         onSubmit={(event) => {
           event.preventDefault();
           const formData = new FormData(event.currentTarget);
-          const value = String(formData.get('month') ?? month);
-          router.push(`/receipts?month=${value}`);
+          const nextMonth = String(formData.get('month') ?? month);
+          const nextCustomerId = String(formData.get('customerId') ?? '');
+          const params = new URLSearchParams({ month: nextMonth });
+          if (nextCustomerId) {
+            params.set('customerId', nextCustomerId);
+          }
+          router.push(`/receipts?${params.toString()}`);
         }}
       >
         <div className="space-y-2">
           <Label htmlFor="month">Mês</Label>
           <Input id="month" name="month" type="month" defaultValue={month} />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="customerId">Cliente</Label>
+          <SimpleSelect
+            value={customerId}
+            onChange={(value) => {
+              const params = new URLSearchParams({ month });
+              if (value) {
+                params.set('customerId', value);
+              }
+              router.push(`/receipts?${params.toString()}`);
+            }}
+            options={customerOptions}
+            placeholder="Todos os clientes"
+            className="min-w-[240px]"
+          />
+          <input type="hidden" name="customerId" value={customerId} />
         </div>
         <Button type="submit">Filtrar</Button>
       </form>

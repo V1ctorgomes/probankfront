@@ -123,7 +123,7 @@ export default function CustomerDetailPage() {
                 <TableHead>Saldo</TableHead>
                 <TableHead>Juros pendentes</TableHead>
                 <TableHead>Taxa</TableHead>
-                <TableHead>Início</TableHead>
+                <TableHead>1º pagamento</TableHead>
                 <TableHead />
               </TableRow>
             </TableHeader>

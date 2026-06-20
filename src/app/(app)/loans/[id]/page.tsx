@@ -164,7 +164,13 @@ export default function LoanDetailPage() {
               <p>{formatPercent(loan.taxaJurosMensal)}</p>
             </div>
             <div>
-              <p className="text-xs uppercase text-muted-foreground">Início</p>
+              <p className="text-xs uppercase text-muted-foreground">Dia de pagamento</p>
+              <p>Dia {loan.diaPagamento ?? '—'}</p>
+            </div>
+            <div>
+              <p className="text-xs uppercase text-muted-foreground">
+                Primeiro pagamento
+              </p>
               <p>{formatDate(loan.dataInicio)}</p>
             </div>
           </CardContent>

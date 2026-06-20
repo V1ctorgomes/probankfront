@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -10,6 +10,11 @@ import { toast } from 'sonner';
 import api from '@/lib/api';
 import type { Customer, Loan } from '@/types';
 import { formatCurrency, formatDate, formatPercent, formatCpf } from '@/lib/format';
+import {
+  nextPaymentDateFromDay,
+  paymentDayOptions,
+  toDateInputValue,
+} from '@/lib/loan-dates';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
@@ -39,6 +44,7 @@ const schema = z.object({
   customerId: z.string().uuid(),
   principalOriginal: z.number().positive(),
   taxaJurosMensal: z.number().min(0).max(100),
+  diaPagamento: z.number().int().min(1).max(31),
   dataInicio: z.string().min(1),
 });
 
@@ -50,7 +56,112 @@ const statusVariant: Record<string, 'default' | 'secondary' | 'destructive'> = {
   ENCERRADO: 'destructive',
 };
 
+type LoanTableProps = {
+  loans: Loan[];
+  isLoading: boolean;
+  canEdit: boolean;
+  variant: 'active' | 'closed';
+  onClose?: (id: string) => void;
+};
+
+function LoanTable({
+  loans,
+  isLoading,
+  canEdit,
+  variant,
+  onClose,
+}: LoanTableProps) {
+  const emptyMessage =
+    variant === 'active'
+      ? 'Nenhum empréstimo ativo encontrado'
+      : 'Nenhum empréstimo encerrado encontrado';
+
+  return (
+    <Table>
+      <TableHeader>
+        <TableRow>
+          <TableHead>Cliente</TableHead>
+          <TableHead>Principal</TableHead>
+          <TableHead>Saldo</TableHead>
+          <TableHead>Juros pendentes</TableHead>
+          <TableHead>Taxa</TableHead>
+          {variant === 'closed' && <TableHead>Status</TableHead>}
+          <TableHead>Dia pagamento</TableHead>
+          <TableHead>1º pagamento</TableHead>
+          {canEdit && variant === 'active' && <TableHead>Ações</TableHead>}
+          {canEdit && variant === 'closed' && <TableHead>Ações</TableHead>}
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        {isLoading ? (
+          <TableRow>
+            <TableCell colSpan={canEdit ? 9 : 8}>Carregando...</TableCell>
+          </TableRow>
+        ) : loans.length === 0 ? (
+          <TableRow>
+            <TableCell colSpan={canEdit ? 9 : 8}>{emptyMessage}</TableCell>
+          </TableRow>
+        ) : (
+          loans.map((loan) => (
+            <TableRow key={loan.id}>
+              <TableCell>
+                {loan.customer ? (
+                  <Link
+                    href={`/customers/${loan.customer.id}`}
+                    className="text-primary hover:underline"
+                  >
+                    {loan.customer.nome}
+                  </Link>
+                ) : (
+                  '-'
+                )}
+              </TableCell>
+              <TableCell>{formatCurrency(loan.principalOriginal)}</TableCell>
+              <TableCell>{formatCurrency(loan.principalAtual)}</TableCell>
+              <TableCell>{formatCurrency(loan.jurosPendentes ?? 0)}</TableCell>
+              <TableCell>{formatPercent(loan.taxaJurosMensal)}</TableCell>
+              {variant === 'closed' && (
+                <TableCell>
+                  <Badge variant={statusVariant[loan.status]}>
+                    {loanStatusLabel[loan.status] ?? loan.status}
+                  </Badge>
+                </TableCell>
+              )}
+              <TableCell>Dia {loan.diaPagamento ?? '—'}</TableCell>
+              <TableCell>{formatDate(loan.dataInicio)}</TableCell>
+              {canEdit && (
+                <TableCell className="flex flex-wrap gap-2">
+                  <Link
+                    href={`/loans/${loan.id}`}
+                    className="inline-flex h-7 items-center rounded-md border px-2.5 text-sm"
+                  >
+                    Ver
+                  </Link>
+                  {variant === 'active' && onClose && loan.status === 'ATIVO' && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => onClose(loan.id)}
+                    >
+                      Encerrar
+                    </Button>
+                  )}
+                </TableCell>
+              )}
+            </TableRow>
+          ))
+        )}
+      </TableBody>
+    </Table>
+  );
+}
+
 export default function LoansPage() {
+  const defaultPaymentDay = 10;
+  const defaultFirstPayment = toDateInputValue(
+    nextPaymentDateFromDay(defaultPaymentDay),
+  );
+
   const [open, setOpen] = useState(false);
   const queryClient = useQueryClient();
   const user = getUser<AuthUser>();
@@ -63,6 +174,16 @@ export default function LoansPage() {
       return data;
     },
   });
+
+  const activeLoans = useMemo(
+    () => loans.filter((loan) => loan.status === 'ATIVO'),
+    [loans],
+  );
+
+  const closedLoans = useMemo(
+    () => loans.filter((loan) => loan.status !== 'ATIVO'),
+    [loans],
+  );
 
   const { data: customers = [] } = useQuery({
     queryKey: ['customers'],
@@ -84,23 +205,38 @@ export default function LoansPage() {
   } = useForm<FormData>({
     resolver: zodResolver(schema),
     defaultValues: {
-      dataInicio: new Date().toISOString().slice(0, 10),
+      diaPagamento: defaultPaymentDay,
+      dataInicio: defaultFirstPayment,
       taxaJurosMensal: 10,
     },
   });
 
+  const selectedPaymentDay = watch('diaPagamento');
+
+  const handlePaymentDayChange = (value: string) => {
+    const day = Number(value);
+    setValue('diaPagamento', day);
+    setValue('dataInicio', toDateInputValue(nextPaymentDateFromDay(day)));
+  };
+
   const createMutation = useMutation({
     mutationFn: (payload: FormData) =>
       api.post('/loans', {
-        ...payload,
+        customerId: payload.customerId,
+        principalOriginal: payload.principalOriginal,
         taxaJurosMensal: payload.taxaJurosMensal / 100,
-        dataInicio: new Date(payload.dataInicio).toISOString(),
+        diaPagamento: payload.diaPagamento,
+        dataInicio: new Date(`${payload.dataInicio}T12:00:00.000Z`).toISOString(),
       }),
     onSuccess: () => {
       toast.success('Empréstimo criado');
       queryClient.invalidateQueries({ queryKey: ['loans'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
-      reset();
+      reset({
+        diaPagamento: defaultPaymentDay,
+        dataInicio: defaultFirstPayment,
+        taxaJurosMensal: 10,
+      });
       setOpen(false);
     },
     onError: () => toast.error('Erro ao criar empréstimo'),
@@ -161,8 +297,19 @@ export default function LoansPage() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label>Data de início</Label>
+                  <Label>Dia de pagamento</Label>
+                  <SimpleSelect
+                    value={String(selectedPaymentDay ?? defaultPaymentDay)}
+                    onChange={handlePaymentDayChange}
+                    options={paymentDayOptions}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Data do primeiro pagamento</Label>
                   <Input type="date" {...register('dataInicio')} />
+                  <p className="text-xs text-muted-foreground">
+                    Esta data define o vencimento escolhido pelo cliente.
+                  </p>
                 </div>
                 <Button type="submit" disabled={isSubmitting}>
                   Criar contrato
@@ -175,82 +322,30 @@ export default function LoansPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Contratos</CardTitle>
+          <CardTitle>Empréstimos ativos ({activeLoans.length})</CardTitle>
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Cliente</TableHead>
-                <TableHead>Principal</TableHead>
-                <TableHead>Saldo</TableHead>
-                <TableHead>Juros pendentes</TableHead>
-                <TableHead>Taxa</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Início</TableHead>
-                {canEdit && <TableHead>Ações</TableHead>}
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {isLoading ? (
-                <TableRow>
-                  <TableCell colSpan={8}>Carregando...</TableCell>
-                </TableRow>
-              ) : loans.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={8}>Nenhum contrato encontrado</TableCell>
-                </TableRow>
-              ) : (
-                loans.map((loan) => (
-                  <TableRow key={loan.id}>
-                    <TableCell>
-                      {loan.customer ? (
-                        <Link
-                          href={`/customers/${loan.customer.id}`}
-                          className="text-primary hover:underline"
-                        >
-                          {loan.customer.nome}
-                        </Link>
-                      ) : (
-                        '-'
-                      )}
-                    </TableCell>
-                    <TableCell>{formatCurrency(loan.principalOriginal)}</TableCell>
-                    <TableCell>{formatCurrency(loan.principalAtual)}</TableCell>
-                    <TableCell>
-                      {formatCurrency(loan.jurosPendentes ?? 0)}
-                    </TableCell>
-                    <TableCell>{formatPercent(loan.taxaJurosMensal)}</TableCell>
-                    <TableCell>
-                      <Badge variant={statusVariant[loan.status]}>
-                        {loanStatusLabel[loan.status] ?? loan.status}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>{formatDate(loan.dataInicio)}</TableCell>
-                    {canEdit && (
-                      <TableCell className="flex flex-wrap gap-2">
-                        <Link
-                          href={`/loans/${loan.id}`}
-                          className="inline-flex h-7 items-center rounded-md border px-2.5 text-sm"
-                        >
-                          Ver
-                        </Link>
-                        {loan.status === 'ATIVO' && (
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => closeMutation.mutate(loan.id)}
-                          >
-                            Encerrar
-                          </Button>
-                        )}
-                      </TableCell>
-                    )}
-                  </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
+          <LoanTable
+            loans={activeLoans}
+            isLoading={isLoading}
+            canEdit={canEdit}
+            variant="active"
+            onClose={(id) => closeMutation.mutate(id)}
+          />
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Empréstimos encerrados ({closedLoans.length})</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <LoanTable
+            loans={closedLoans}
+            isLoading={isLoading}
+            canEdit={canEdit}
+            variant="closed"
+          />
         </CardContent>
       </Card>
     </div>

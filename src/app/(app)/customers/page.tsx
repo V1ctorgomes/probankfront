@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -30,7 +30,6 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Textarea } from '@/components/ui/textarea';
-import { Badge } from '@/components/ui/badge';
 import { getUser } from '@/lib/auth';
 import type { AuthUser } from '@/types';
 
@@ -46,8 +45,114 @@ const schema = z.object({
 
 type FormData = z.infer<typeof schema>;
 
+type CustomerTableProps = {
+  customers: Customer[];
+  isLoading: boolean;
+  canEdit: boolean;
+  variant: 'active' | 'inactive';
+  onDeactivate: (id: string) => void;
+  onActivate: (id: string) => void;
+  onDelete: (customer: Customer) => void;
+};
+
+function CustomerTable({
+  customers,
+  isLoading,
+  canEdit,
+  variant,
+  onDeactivate,
+  onActivate,
+  onDelete,
+}: CustomerTableProps) {
+  const emptyMessage =
+    variant === 'active'
+      ? 'Nenhum cliente ativo encontrado'
+      : 'Nenhum cliente inativo encontrado';
+
+  return (
+    <Table>
+      <TableHeader>
+        <TableRow>
+          <TableHead>Nome</TableHead>
+          <TableHead>CPF</TableHead>
+          <TableHead>Telefone</TableHead>
+          <TableHead>Saldo devedor</TableHead>
+          {canEdit && <TableHead>Ações</TableHead>}
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        {isLoading ? (
+          <TableRow>
+            <TableCell colSpan={canEdit ? 5 : 4}>Carregando...</TableCell>
+          </TableRow>
+        ) : customers.length === 0 ? (
+          <TableRow>
+            <TableCell colSpan={canEdit ? 5 : 4}>{emptyMessage}</TableCell>
+          </TableRow>
+        ) : (
+          customers.map((customer) => (
+            <TableRow
+              key={customer.id}
+              className={variant === 'inactive' ? 'opacity-80' : undefined}
+            >
+              <TableCell className="font-medium">
+                <Link
+                  href={`/customers/${customer.id}`}
+                  className="text-primary hover:underline"
+                >
+                  {customer.nome}
+                </Link>
+              </TableCell>
+              <TableCell>{formatCpf(customer.cpf)}</TableCell>
+              <TableCell>{customer.telefone ?? '-'}</TableCell>
+              <TableCell>{formatCurrency(customer.saldoDevedor ?? 0)}</TableCell>
+              {canEdit && (
+                <TableCell className="flex flex-wrap gap-2">
+                  <Link
+                    href={`/customers/${customer.id}`}
+                    className="inline-flex h-7 items-center rounded-md border px-2.5 text-sm"
+                  >
+                    Ver
+                  </Link>
+                  {variant === 'active' ? (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => onDeactivate(customer.id)}
+                    >
+                      Desativar
+                    </Button>
+                  ) : (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => onActivate(customer.id)}
+                    >
+                      Reativar
+                    </Button>
+                  )}
+                  {customer.podeExcluir && (
+                    <Button
+                      size="sm"
+                      variant="destructive"
+                      onClick={() => onDelete(customer)}
+                    >
+                      Excluir
+                    </Button>
+                  )}
+                </TableCell>
+              )}
+            </TableRow>
+          ))
+        )}
+      </TableBody>
+    </Table>
+  );
+}
+
 export default function CustomersPage() {
   const [open, setOpen] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<Customer | null>(null);
   const [search, setSearch] = useState('');
   const queryClient = useQueryClient();
   const user = getUser<AuthUser>();
@@ -62,6 +167,16 @@ export default function CustomersPage() {
       return data;
     },
   });
+
+  const activeCustomers = useMemo(
+    () => customers.filter((customer) => customer.ativo),
+    [customers],
+  );
+
+  const inactiveCustomers = useMemo(
+    () => customers.filter((customer) => !customer.ativo),
+    [customers],
+  );
 
   const {
     register,
@@ -94,6 +209,21 @@ export default function CustomersPage() {
     onSuccess: () => {
       toast.success('Cliente reativado');
       queryClient.invalidateQueries({ queryKey: ['customers'] });
+    },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => api.delete(`/customers/${id}`),
+    onSuccess: () => {
+      toast.success('Cliente excluído');
+      queryClient.invalidateQueries({ queryKey: ['customers'] });
+      setDeleteTarget(null);
+    },
+    onError: (error: { response?: { data?: { message?: string } } }) => {
+      toast.error(
+        error.response?.data?.message ??
+          'Não foi possível excluir este cliente',
+      );
     },
   });
 
@@ -153,93 +283,78 @@ export default function CustomersPage() {
         )}
       </div>
 
+      <Input
+        placeholder="Buscar por nome ou CPF"
+        value={search}
+        onChange={(event) => setSearch(event.target.value)}
+        className="max-w-sm"
+      />
+
       <Card>
         <CardHeader>
-          <CardTitle>Lista de clientes</CardTitle>
-          <Input
-            placeholder="Buscar por nome ou CPF"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="max-w-sm"
-          />
+          <CardTitle>Clientes ativos ({activeCustomers.length})</CardTitle>
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Nome</TableHead>
-                <TableHead>CPF</TableHead>
-                <TableHead>Telefone</TableHead>
-                <TableHead>Saldo devedor</TableHead>
-                <TableHead>Status</TableHead>
-                {canEdit && <TableHead>Ações</TableHead>}
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {isLoading ? (
-                <TableRow>
-                  <TableCell colSpan={6}>Carregando...</TableCell>
-                </TableRow>
-              ) : customers.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={6}>Nenhum cliente encontrado</TableCell>
-                </TableRow>
-              ) : (
-                customers.map((customer) => (
-                  <TableRow
-                    key={customer.id}
-                    className={customer.ativo ? undefined : 'opacity-60'}
-                  >
-                    <TableCell className="font-medium">
-                      <Link
-                        href={`/customers/${customer.id}`}
-                        className="text-primary hover:underline"
-                      >
-                        {customer.nome}
-                      </Link>
-                    </TableCell>
-                    <TableCell>{formatCpf(customer.cpf)}</TableCell>
-                    <TableCell>{customer.telefone ?? '-'}</TableCell>
-                    <TableCell>{formatCurrency(customer.saldoDevedor ?? 0)}</TableCell>
-                    <TableCell>
-                      <Badge variant={customer.ativo ? 'default' : 'secondary'}>
-                        {customer.ativo ? 'Ativo' : 'Desativado'}
-                      </Badge>
-                    </TableCell>
-                    {canEdit && (
-                      <TableCell className="flex flex-wrap gap-2">
-                        <Link
-                          href={`/customers/${customer.id}`}
-                          className="inline-flex h-7 items-center rounded-md border px-2.5 text-sm"
-                        >
-                          Ver
-                        </Link>
-                        {customer.ativo ? (
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => deactivateMutation.mutate(customer.id)}
-                          >
-                            Desativar
-                          </Button>
-                        ) : (
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => activateMutation.mutate(customer.id)}
-                          >
-                            Reativar
-                          </Button>
-                        )}
-                      </TableCell>
-                    )}
-                  </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
+          <CustomerTable
+            customers={activeCustomers}
+            isLoading={isLoading}
+            canEdit={canEdit}
+            variant="active"
+            onDeactivate={(id) => deactivateMutation.mutate(id)}
+            onActivate={(id) => activateMutation.mutate(id)}
+            onDelete={setDeleteTarget}
+          />
         </CardContent>
       </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Clientes inativos ({inactiveCustomers.length})</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <CustomerTable
+            customers={inactiveCustomers}
+            isLoading={isLoading}
+            canEdit={canEdit}
+            variant="inactive"
+            onDeactivate={(id) => deactivateMutation.mutate(id)}
+            onActivate={(id) => activateMutation.mutate(id)}
+            onDelete={setDeleteTarget}
+          />
+        </CardContent>
+      </Card>
+
+      <Dialog
+        open={!!deleteTarget}
+        onOpenChange={(isOpen) => {
+          if (!isOpen) setDeleteTarget(null);
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Excluir cliente</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">
+            Deseja excluir permanentemente{' '}
+            <strong>{deleteTarget?.nome}</strong>? Esta ação não pode ser
+            desfeita.
+          </p>
+          <div className="flex justify-end gap-2">
+            <Button variant="outline" onClick={() => setDeleteTarget(null)}>
+              Cancelar
+            </Button>
+            <Button
+              variant="destructive"
+              disabled={deleteMutation.isPending}
+              onClick={() => {
+                if (deleteTarget) deleteMutation.mutate(deleteTarget.id);
+              }}
+            >
+              Excluir
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

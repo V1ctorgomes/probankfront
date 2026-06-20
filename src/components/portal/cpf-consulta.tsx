@@ -141,7 +141,7 @@ function ConsultaResult({ data }: { data: PortalData }) {
               <div key={index} className="rounded-lg border p-4">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <p className="font-medium">
-                    Contrato iniciado em {formatDate(contract.dataInicio)}
+                    Contrato com pagamento em {formatDate(contract.dataInicio)}
                   </p>
                   <Badge>{contract.status}</Badge>
                 </div>

@@ -22,6 +22,7 @@ export interface Customer {
   ativo: boolean;
   createdAt: string;
   saldoDevedor?: number;
+  podeExcluir?: boolean;
   loans?: Loan[];
 }
 
@@ -44,6 +45,7 @@ export interface Loan {
   taxaJurosMensal: number;
   status: 'ATIVO' | 'QUITADO' | 'ENCERRADO';
   dataInicio: string;
+  diaPagamento?: number;
   createdAt: string;
   jurosPendentes?: number;
   customer?: { id: string; nome: string; cpf: string };

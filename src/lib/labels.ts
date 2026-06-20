@@ -18,6 +18,7 @@ export const auditActionLabel: Record<string, string> = {
   DEACTIVATE: 'Desativação',
   ACTIVATE: 'Reativação',
   CLOSE: 'Encerramento',
+  DELETE: 'Exclusão',
 };
 
 export const auditEntityLabel: Record<string, string> = {
