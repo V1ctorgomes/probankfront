@@ -43,3 +43,20 @@ export const transactionTypeLabel: Record<string, string> = {
   INCOME: 'Entrada',
   EXPENSE: 'Saída',
 };
+
+export type InterestCycleStatus = 'PAGO' | 'PENDENTE' | 'ATRASADO';
+
+export const interestCycleStatusLabel: Record<InterestCycleStatus, string> = {
+  PAGO: 'Pago',
+  PENDENTE: 'Pendente',
+  ATRASADO: 'Atrasado',
+};
+
+export const interestCycleStatusVariant: Record<
+  InterestCycleStatus,
+  'success' | 'secondary' | 'destructive'
+> = {
+  PAGO: 'success',
+  PENDENTE: 'secondary',
+  ATRASADO: 'destructive',
+};

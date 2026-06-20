@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { useMemo, useState } from 'react';
 import { useParams } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
 import { ArrowLeft, Pencil } from 'lucide-react';
@@ -18,9 +19,13 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import { ActionLink } from '@/components/ui/table-actions';
+import { Pagination } from '@/components/ui/pagination';
+import { paginateItems } from '@/lib/pagination';
 
 export default function CustomerDetailPage() {
   const params = useParams<{ id: string }>();
+  const [page, setPage] = useState(1);
 
   const { data: customer, isLoading } = useQuery({
     queryKey: ['customer', params.id],
@@ -29,6 +34,11 @@ export default function CustomerDetailPage() {
       return data;
     },
   });
+
+  const loansPagination = useMemo(
+    () => paginateItems(customer?.loans ?? [], page),
+    [customer?.loans, page],
+  );
 
   if (isLoading) {
     return <p>Carregando...</p>;
@@ -133,7 +143,7 @@ export default function CustomerDetailPage() {
                   <TableCell colSpan={7}>Nenhum empréstimo registrado.</TableCell>
                 </TableRow>
               ) : (
-                customer.loans.map((loan) => (
+                loansPagination.items.map((loan) => (
                   <TableRow key={loan.id}>
                     <TableCell>
                       <Badge>{loanStatusLabel[loan.status] ?? loan.status}</Badge>
@@ -144,18 +154,20 @@ export default function CustomerDetailPage() {
                     <TableCell>{formatPercent(loan.taxaJurosMensal)}</TableCell>
                     <TableCell>{formatDate(loan.dataInicio)}</TableCell>
                     <TableCell>
-                      <Link
-                        href={`/loans/${loan.id}`}
-                        className="inline-flex h-7 items-center rounded-md border px-2.5 text-sm"
-                      >
-                        Ver
-                      </Link>
+                      <ActionLink href={`/loans/${loan.id}`}>Ver</ActionLink>
                     </TableCell>
                   </TableRow>
                 ))
               )}
             </TableBody>
           </Table>
+          <Pagination
+            page={loansPagination.page}
+            totalPages={loansPagination.totalPages}
+            totalItems={loansPagination.totalItems}
+            pageSize={loansPagination.pageSize}
+            onPageChange={setPage}
+          />
         </CardContent>
       </Card>
     </div>

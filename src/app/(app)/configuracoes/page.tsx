@@ -32,6 +32,8 @@ import {
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { ViewTabs } from '@/components/ui/view-tabs';
+import { Pagination } from '@/components/ui/pagination';
+import { paginateItems } from '@/lib/pagination';
 
 const schema = z.object({
   nome: z.string().min(2),
@@ -100,6 +102,7 @@ function CategoryTable({
 export default function ConfiguracoesPage() {
   const [open, setOpen] = useState(false);
   const [view, setView] = useState<'income' | 'expense'>('income');
+  const [page, setPage] = useState(1);
   const [consultaUrl, setConsultaUrl] = useState('/consulta');
   const queryClient = useQueryClient();
   const user = getUser<AuthUser>();
@@ -126,6 +129,18 @@ export default function ConfiguracoesPage() {
     () => categories.filter((category) => category.tipo === 'EXPENSE'),
     [categories],
   );
+
+  const visibleCategories =
+    view === 'income' ? incomeCategories : expenseCategories;
+
+  const pagination = useMemo(
+    () => paginateItems(visibleCategories, page),
+    [visibleCategories, page],
+  );
+
+  useEffect(() => {
+    setPage(1);
+  }, [view]);
 
   const {
     register,
@@ -227,7 +242,7 @@ export default function ConfiguracoesPage() {
         </CardHeader>
         <CardContent>
           <CategoryTable
-            categories={view === 'income' ? incomeCategories : expenseCategories}
+            categories={pagination.items}
             isLoading={isLoading}
             emptyMessage={
               view === 'income'
@@ -235,6 +250,13 @@ export default function ConfiguracoesPage() {
                 : 'Nenhuma categoria de saída cadastrada'
             }
             onToggle={handleToggle}
+          />
+          <Pagination
+            page={pagination.page}
+            totalPages={pagination.totalPages}
+            totalItems={pagination.totalItems}
+            pageSize={pagination.pageSize}
+            onPageChange={setPage}
           />
         </CardContent>
       </Card>

@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
+import { InterestStatusBadge } from '@/components/ui/interest-status-badge';
 
 type PortalData = {
   clientName: string;
@@ -22,8 +23,11 @@ type PortalData = {
     jurosPendentes: number;
     ciclos: Array<{
       referencia: string;
+      jurosGerado: number;
+      jurosPago: number;
       jurosPendente: number;
-      atrasado: boolean;
+      vencimento: string;
+      status: 'PAGO' | 'PENDENTE' | 'ATRASADO';
     }>;
   }>;
 };
@@ -59,10 +63,12 @@ function formatReferencia(ref: string) {
 
 function ConsultaResult({ data }: { data: PortalData }) {
   const openCycles = data.contracts.flatMap((contract) =>
-    contract.ciclos.map((cycle) => ({
-      ...cycle,
-      status: contract.status,
-    })),
+    contract.ciclos
+      .filter((cycle) => cycle.status !== 'PAGO')
+      .map((cycle) => ({
+        ...cycle,
+        contractStatus: contract.status,
+      })),
   );
 
   return (
@@ -102,23 +108,22 @@ function ConsultaResult({ data }: { data: PortalData }) {
       {openCycles.length > 0 ? (
         <Card>
           <CardHeader>
-            <CardTitle>Juros em aberto</CardTitle>
+            <CardTitle>Parcelas de juros em aberto</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
-            {openCycles.map((cycle) => (
+            {openCycles.map((cycle, index) => (
               <div
-                key={cycle.referencia}
+                key={`${cycle.referencia}-${index}`}
                 className="flex flex-wrap items-center justify-between gap-2 rounded-lg border p-3"
               >
                 <div>
                   <p className="font-medium">{formatReferencia(cycle.referencia)}</p>
                   <p className="text-sm text-muted-foreground">
-                    Valor: {formatCurrency(cycle.jurosPendente)}
+                    Vencimento: {formatDate(cycle.vencimento)} · Pendente:{' '}
+                    {formatCurrency(cycle.jurosPendente)}
                   </p>
                 </div>
-                <Badge variant={cycle.atrasado ? 'destructive' : 'secondary'}>
-                  {cycle.atrasado ? 'Em atraso' : 'Em dia'}
-                </Badge>
+                <InterestStatusBadge status={cycle.status} />
               </div>
             ))}
           </CardContent>

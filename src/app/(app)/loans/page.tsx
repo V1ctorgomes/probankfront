@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -36,8 +36,11 @@ import {
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { ViewTabs } from '@/components/ui/view-tabs';
+import { Pagination } from '@/components/ui/pagination';
+import { ActionLink, TableActions } from '@/components/ui/table-actions';
 import { loanStatusLabel } from '@/lib/labels';
 import { PageHeader } from '@/components/layout/page-header';
+import { paginateItems } from '@/lib/pagination';
 import type { AuthUser } from '@/types';
 import { getUser } from '@/lib/auth';
 
@@ -89,8 +92,12 @@ function LoanTable({
           {variant === 'closed' && <TableHead>Status</TableHead>}
           <TableHead>Dia pagamento</TableHead>
           <TableHead>1º pagamento</TableHead>
-          {canEdit && variant === 'active' && <TableHead>Ações</TableHead>}
-          {canEdit && variant === 'closed' && <TableHead>Ações</TableHead>}
+          {canEdit && variant === 'active' && (
+            <TableHead className="w-[1%] whitespace-nowrap">Ações</TableHead>
+          )}
+          {canEdit && variant === 'closed' && (
+            <TableHead className="w-[1%] whitespace-nowrap">Ações</TableHead>
+          )}
         </TableRow>
       </TableHeader>
       <TableBody>
@@ -131,22 +138,19 @@ function LoanTable({
               <TableCell>Dia {loan.diaPagamento ?? '—'}</TableCell>
               <TableCell>{formatDate(loan.dataInicio)}</TableCell>
               {canEdit && (
-                <TableCell className="flex flex-wrap gap-2">
-                  <Link
-                    href={`/loans/${loan.id}`}
-                    className="inline-flex h-7 items-center rounded-md border px-2.5 text-sm"
-                  >
-                    Ver
-                  </Link>
-                  {variant === 'active' && onClose && loan.status === 'ATIVO' && (
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => onClose(loan.id)}
-                    >
-                      Encerrar
-                    </Button>
-                  )}
+                <TableCell>
+                  <TableActions>
+                    <ActionLink href={`/loans/${loan.id}`}>Ver</ActionLink>
+                    {variant === 'active' && onClose && loan.status === 'ATIVO' && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => onClose(loan.id)}
+                      >
+                        Encerrar
+                      </Button>
+                    )}
+                  </TableActions>
                 </TableCell>
               )}
             </TableRow>
@@ -165,6 +169,7 @@ export default function LoansPage() {
 
   const [open, setOpen] = useState(false);
   const [view, setView] = useState<'active' | 'closed'>('active');
+  const [page, setPage] = useState(1);
   const queryClient = useQueryClient();
   const user = getUser<AuthUser>();
   const canEdit = user?.role !== 'LEITURA';
@@ -186,6 +191,17 @@ export default function LoansPage() {
     () => loans.filter((loan) => loan.status !== 'ATIVO'),
     [loans],
   );
+
+  const visibleLoans = view === 'active' ? activeLoans : closedLoans;
+
+  const pagination = useMemo(
+    () => paginateItems(visibleLoans, page),
+    [visibleLoans, page],
+  );
+
+  useEffect(() => {
+    setPage(1);
+  }, [view]);
 
   const { data: customers = [] } = useQuery({
     queryKey: ['customers'],
@@ -336,11 +352,18 @@ export default function LoansPage() {
         </CardHeader>
         <CardContent>
           <LoanTable
-            loans={view === 'active' ? activeLoans : closedLoans}
+            loans={pagination.items}
             isLoading={isLoading}
             canEdit={canEdit}
             variant={view}
             onClose={(id) => closeMutation.mutate(id)}
+          />
+          <Pagination
+            page={pagination.page}
+            totalPages={pagination.totalPages}
+            totalItems={pagination.totalItems}
+            pageSize={pagination.pageSize}
+            onPageChange={setPage}
           />
         </CardContent>
       </Card>

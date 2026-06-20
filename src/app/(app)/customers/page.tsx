@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -30,7 +30,10 @@ import {
 } from '@/components/ui/table';
 import { Textarea } from '@/components/ui/textarea';
 import { ViewTabs } from '@/components/ui/view-tabs';
+import { Pagination } from '@/components/ui/pagination';
+import { ActionLink, TableActions } from '@/components/ui/table-actions';
 import { PageHeader } from '@/components/layout/page-header';
+import { paginateItems } from '@/lib/pagination';
 import type { AuthUser } from '@/types';
 import { getUser } from '@/lib/auth';
 
@@ -78,7 +81,9 @@ function CustomerTable({
           <TableHead>CPF</TableHead>
           <TableHead>Telefone</TableHead>
           <TableHead>Saldo devedor</TableHead>
-          {canEdit && <TableHead>Ações</TableHead>}
+          {canEdit && (
+            <TableHead className="w-[1%] whitespace-nowrap">Ações</TableHead>
+          )}
         </TableRow>
       </TableHeader>
       <TableBody>
@@ -108,39 +113,38 @@ function CustomerTable({
               <TableCell>{customer.telefone ?? '-'}</TableCell>
               <TableCell>{formatCurrency(customer.saldoDevedor ?? 0)}</TableCell>
               {canEdit && (
-                <TableCell className="flex flex-wrap gap-2">
-                  <Link
-                    href={`/customers/${customer.id}`}
-                    className="inline-flex h-7 items-center rounded-md border px-2.5 text-sm"
-                  >
-                    Ver
-                  </Link>
-                  {variant === 'active' ? (
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => onDeactivate(customer.id)}
-                    >
-                      Desativar
-                    </Button>
-                  ) : (
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => onActivate(customer.id)}
-                    >
-                      Reativar
-                    </Button>
-                  )}
-                  {customer.podeExcluir && (
-                    <Button
-                      size="sm"
-                      variant="destructive"
-                      onClick={() => onDelete(customer)}
-                    >
-                      Excluir
-                    </Button>
-                  )}
+                <TableCell>
+                  <TableActions>
+                    <ActionLink href={`/customers/${customer.id}`}>
+                      Ver
+                    </ActionLink>
+                    {variant === 'active' ? (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => onDeactivate(customer.id)}
+                      >
+                        Desativar
+                      </Button>
+                    ) : (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => onActivate(customer.id)}
+                      >
+                        Reativar
+                      </Button>
+                    )}
+                    {customer.podeExcluir && (
+                      <Button
+                        size="sm"
+                        variant="destructive"
+                        onClick={() => onDelete(customer)}
+                      >
+                        Excluir
+                      </Button>
+                    )}
+                  </TableActions>
                 </TableCell>
               )}
             </TableRow>
@@ -156,6 +160,7 @@ export default function CustomersPage() {
   const [deleteTarget, setDeleteTarget] = useState<Customer | null>(null);
   const [search, setSearch] = useState('');
   const [view, setView] = useState<'active' | 'inactive'>('active');
+  const [page, setPage] = useState(1);
   const queryClient = useQueryClient();
   const user = getUser<AuthUser>();
   const canEdit = user?.role !== 'LEITURA';
@@ -179,6 +184,18 @@ export default function CustomersPage() {
     () => customers.filter((customer) => !customer.ativo),
     [customers],
   );
+
+  const visibleCustomers =
+    view === 'active' ? activeCustomers : inactiveCustomers;
+
+  const pagination = useMemo(
+    () => paginateItems(visibleCustomers, page),
+    [visibleCustomers, page],
+  );
+
+  useEffect(() => {
+    setPage(1);
+  }, [view, search]);
 
   const {
     register,
@@ -310,13 +327,20 @@ export default function CustomersPage() {
         </CardHeader>
         <CardContent>
           <CustomerTable
-            customers={view === 'active' ? activeCustomers : inactiveCustomers}
+            customers={pagination.items}
             isLoading={isLoading}
             canEdit={canEdit}
             variant={view}
             onDeactivate={(id) => deactivateMutation.mutate(id)}
             onActivate={(id) => activateMutation.mutate(id)}
             onDelete={setDeleteTarget}
+          />
+          <Pagination
+            page={pagination.page}
+            totalPages={pagination.totalPages}
+            totalItems={pagination.totalItems}
+            pageSize={pagination.pageSize}
+            onPageChange={setPage}
           />
         </CardContent>
       </Card>

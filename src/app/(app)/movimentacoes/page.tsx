@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -32,6 +32,8 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
+import { Pagination } from '@/components/ui/pagination';
+import { paginateItems } from '@/lib/pagination';
 
 const schema = z.object({
   tipo: z.enum(['INCOME', 'EXPENSE']),
@@ -60,6 +62,7 @@ export default function MovimentacoesPage() {
   const [startDate, setStartDate] = useState(defaults.startDate);
   const [endDate, setEndDate] = useState(defaults.endDate);
   const [tipoFilter, setTipoFilter] = useState('');
+  const [page, setPage] = useState(1);
   const queryClient = useQueryClient();
   const user = getUser<AuthUser>();
   const canEdit = user?.role !== 'LEITURA';
@@ -106,6 +109,15 @@ export default function MovimentacoesPage() {
   const categoryOptions = categories
     .filter((category) => category.tipo === selectedTipo)
     .map((category) => ({ value: category.id, label: category.nome }));
+
+  const pagination = useMemo(
+    () => paginateItems(data?.items ?? [], page),
+    [data?.items, page],
+  );
+
+  useEffect(() => {
+    setPage(1);
+  }, [startDate, endDate, tipoFilter]);
 
   const createMutation = useMutation({
     mutationFn: (payload: FormData) =>
@@ -295,7 +307,7 @@ export default function MovimentacoesPage() {
                   </TableCell>
                 </TableRow>
               ) : (
-                data?.items.map((item) => (
+                pagination.items.map((item) => (
                   <TableRow key={item.id}>
                     <TableCell>{formatDate(item.data)}</TableCell>
                     <TableCell>
@@ -319,6 +331,13 @@ export default function MovimentacoesPage() {
               )}
             </TableBody>
           </Table>
+          <Pagination
+            page={pagination.page}
+            totalPages={pagination.totalPages}
+            totalItems={pagination.totalItems}
+            pageSize={pagination.pageSize}
+            onPageChange={setPage}
+          />
         </CardContent>
       </Card>
     </div>

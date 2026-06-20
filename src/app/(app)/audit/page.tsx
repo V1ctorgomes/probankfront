@@ -1,11 +1,14 @@
 'use client';
 
+import { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import api from '@/lib/api';
 import type { AuditLog } from '@/types';
 import { formatDate } from '@/lib/format';
 import { PageHeader } from '@/components/layout/page-header';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Pagination } from '@/components/ui/pagination';
+import { paginateItems } from '@/lib/pagination';
 import {
   Table,
   TableBody,
@@ -16,6 +19,8 @@ import {
 } from '@/components/ui/table';
 
 export default function AuditPage() {
+  const [page, setPage] = useState(1);
+
   const { data, isLoading } = useQuery({
     queryKey: ['audit'],
     queryFn: async () => {
@@ -26,6 +31,11 @@ export default function AuditPage() {
       return data;
     },
   });
+
+  const pagination = useMemo(
+    () => paginateItems(data?.items ?? [], page),
+    [data?.items, page],
+  );
 
   return (
     <div className="space-y-6">
@@ -59,7 +69,7 @@ export default function AuditPage() {
                   <TableCell colSpan={5}>Nenhum registro</TableCell>
                 </TableRow>
               ) : (
-                data?.items.map((log) => (
+                pagination.items.map((log) => (
                   <TableRow key={log.id}>
                     <TableCell>{formatDate(log.createdAt)}</TableCell>
                     <TableCell>{log.usuario}</TableCell>
@@ -71,6 +81,13 @@ export default function AuditPage() {
               )}
             </TableBody>
           </Table>
+          <Pagination
+            page={pagination.page}
+            totalPages={pagination.totalPages}
+            totalItems={pagination.totalItems}
+            pageSize={pagination.pageSize}
+            onPageChange={setPage}
+          />
         </CardContent>
       </Card>
     </div>

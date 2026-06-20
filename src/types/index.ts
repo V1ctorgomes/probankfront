@@ -34,6 +34,8 @@ export interface InterestCycle {
   jurosGerado: number;
   jurosPago: number;
   jurosPendente?: number;
+  vencimento?: string;
+  status?: 'PAGO' | 'PENDENTE' | 'ATRASADO';
   createdAt: string;
 }
 
@@ -118,13 +120,37 @@ export interface TransactionList {
 
 export interface ReceiptsData {
   month: string;
+  installments: Array<{
+    cycleId: string;
+    loanId: string;
+    referencia: string;
+    jurosGerado: number;
+    jurosPago: number;
+    jurosPendente: number;
+    vencimento: string;
+    status: 'PAGO' | 'PENDENTE' | 'ATRASADO';
+    principalAtual: number;
+    customer: { id: string; nome: string; cpf: string };
+  }>;
+  summary: {
+    total: number;
+    pagos: number;
+    pendentes: number;
+    atrasados: number;
+    valorPago: number;
+    valorPendente: number;
+    valorAtrasado: number;
+  };
   pending: Array<{
     cycleId: string;
     loanId: string;
     referencia: string;
+    jurosGerado: number;
+    jurosPago: number;
     jurosPendente: number;
+    vencimento: string;
+    status: 'PENDENTE' | 'ATRASADO';
     principalAtual: number;
-    overdue: boolean;
     customer: { id: string; nome: string; cpf: string };
   }>;
   pendingTotal: number;

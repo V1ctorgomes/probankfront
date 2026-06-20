@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -12,11 +12,19 @@ import api from '@/lib/api';
 import type { Customer, ReceiptsData } from '@/types';
 import { formatCurrency, formatCpf, formatDate } from '@/lib/format';
 import { PageHeader } from '@/components/layout/page-header';
+import {
+  FilterActions,
+  FilterBar,
+  FilterField,
+} from '@/components/layout/filter-bar';
 import { getUser } from '@/lib/auth';
 import type { AuthUser } from '@/types';
 import { Button } from '@/components/ui/button';
+import { Pagination } from '@/components/ui/pagination';
+import { paginateItems } from '@/lib/pagination';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
+import { InterestStatusBadge } from '@/components/ui/interest-status-badge';
+import { ViewTabs } from '@/components/ui/view-tabs';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { SimpleSelect } from '@/components/ui/simple-select';
@@ -41,6 +49,8 @@ const paymentSchema = z.object({
 
 type PaymentForm = z.infer<typeof paymentSchema>;
 
+type StatusFilter = 'all' | 'PENDENTE' | 'ATRASADO' | 'PAGO';
+
 export default function ReceiptsPage() {
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -57,6 +67,11 @@ export default function ReceiptsPage() {
     principalAtual: number;
   } | null>(null);
   const [open, setOpen] = useState(false);
+  const [filterMonth, setFilterMonth] = useState(month);
+  const [filterCustomerId, setFilterCustomerId] = useState(customerId);
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
+  const [installmentsPage, setInstallmentsPage] = useState(1);
+  const [receivedPage, setReceivedPage] = useState(1);
 
   const { data, isLoading } = useQuery({
     queryKey: ['receipts', month, customerId],
@@ -83,6 +98,35 @@ export default function ReceiptsPage() {
     value: customer.id,
     label: `${customer.nome} — CPF ${formatCpf(customer.cpf)}`,
   }));
+
+  useEffect(() => {
+    setFilterMonth(month);
+    setFilterCustomerId(customerId);
+    setInstallmentsPage(1);
+    setReceivedPage(1);
+  }, [month, customerId]);
+
+  const filteredInstallments = useMemo(() => {
+    const items = data?.installments ?? [];
+    if (statusFilter === 'all') {
+      return items;
+    }
+    return items.filter((item) => item.status === statusFilter);
+  }, [data?.installments, statusFilter]);
+
+  const installmentsPagination = useMemo(
+    () => paginateItems(filteredInstallments, installmentsPage),
+    [filteredInstallments, installmentsPage],
+  );
+
+  useEffect(() => {
+    setInstallmentsPage(1);
+  }, [statusFilter]);
+
+  const receivedPagination = useMemo(
+    () => paginateItems(data?.received ?? [], receivedPage),
+    [data?.received, receivedPage],
+  );
 
   const {
     register,
@@ -112,84 +156,138 @@ export default function ReceiptsPage() {
     <div className="space-y-6">
       <PageHeader
         title="Recebimentos"
-        description="Juros a receber e pagamentos do mês selecionado"
+        description="Controle das parcelas de juros mensais por cliente"
       />
 
-      <form
-        className="flex flex-wrap items-end gap-3"
+      <FilterBar
         onSubmit={(event) => {
           event.preventDefault();
-          const formData = new FormData(event.currentTarget);
-          const nextMonth = String(formData.get('month') ?? month);
-          const nextCustomerId = String(formData.get('customerId') ?? '');
-          const params = new URLSearchParams({ month: nextMonth });
-          if (nextCustomerId) {
-            params.set('customerId', nextCustomerId);
+          const params = new URLSearchParams({ month: filterMonth });
+          if (filterCustomerId) {
+            params.set('customerId', filterCustomerId);
           }
           router.push(`/receipts?${params.toString()}`);
         }}
       >
-        <div className="space-y-2">
-          <Label htmlFor="month">Mês</Label>
-          <Input id="month" name="month" type="month" defaultValue={month} />
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="customerId">Cliente</Label>
+        <FilterField label="Mês" htmlFor="month">
+          <Input
+            id="month"
+            name="month"
+            type="month"
+            value={filterMonth}
+            onChange={(event) => setFilterMonth(event.target.value)}
+          />
+        </FilterField>
+        <FilterField label="Cliente" htmlFor="customerId">
           <SimpleSelect
-            value={customerId}
-            onChange={(value) => {
-              const params = new URLSearchParams({ month });
-              if (value) {
-                params.set('customerId', value);
-              }
-              router.push(`/receipts?${params.toString()}`);
-            }}
+            value={filterCustomerId}
+            onChange={setFilterCustomerId}
             options={customerOptions}
             placeholder="Todos os clientes"
-            className="min-w-[240px]"
+            className="w-full"
           />
-          <input type="hidden" name="customerId" value={customerId} />
-        </div>
-        <Button type="submit">Filtrar</Button>
-      </form>
+        </FilterField>
+        <FilterActions>
+          <Button type="submit" className="w-full sm:w-auto">
+            Filtrar
+          </Button>
+        </FilterActions>
+      </FilterBar>
+
+      <div className="grid gap-4 sm:grid-cols-3">
+        <Card>
+          <CardContent className="pt-6">
+            <p className="text-sm text-muted-foreground">Atrasados</p>
+            <p className="mt-1 text-2xl font-bold text-red-700">
+              {data?.summary.atrasados ?? 0}
+            </p>
+            <p className="mt-1 text-sm text-muted-foreground">
+              {formatCurrency(data?.summary.valorAtrasado ?? 0)}
+            </p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="pt-6">
+            <p className="text-sm text-muted-foreground">Pendentes</p>
+            <p className="mt-1 text-2xl font-bold text-amber-700">
+              {data?.summary.pendentes ?? 0}
+            </p>
+            <p className="mt-1 text-sm text-muted-foreground">
+              {formatCurrency(data?.summary.valorPendente ?? 0)}
+            </p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="pt-6">
+            <p className="text-sm text-muted-foreground">Pagos</p>
+            <p className="mt-1 text-2xl font-bold text-green-700">
+              {data?.summary.pagos ?? 0}
+            </p>
+            <p className="mt-1 text-sm text-muted-foreground">
+              {formatCurrency(data?.summary.valorPago ?? 0)}
+            </p>
+          </CardContent>
+        </Card>
+      </div>
 
       <Card>
-        <CardHeader>
-          <CardTitle>
-            A receber no mês ({data?.pending.length ?? 0})
-          </CardTitle>
+        <CardHeader className="gap-4">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <CardTitle>
+              Parcelas de juros do mês ({data?.summary.total ?? 0})
+            </CardTitle>
+            <p className="text-sm text-muted-foreground">
+              A cobrar:{' '}
+              <span className="font-semibold text-amber-700">
+                {formatCurrency(data?.pendingTotal ?? 0)}
+              </span>
+            </p>
+          </div>
+          <ViewTabs
+            tabs={[
+              { id: 'all', label: 'Todos', count: data?.summary.total ?? 0 },
+              {
+                id: 'ATRASADO',
+                label: 'Atrasados',
+                count: data?.summary.atrasados ?? 0,
+              },
+              {
+                id: 'PENDENTE',
+                label: 'Pendentes',
+                count: data?.summary.pendentes ?? 0,
+              },
+              { id: 'PAGO', label: 'Pagos', count: data?.summary.pagos ?? 0 },
+            ]}
+            value={statusFilter}
+            onChange={(value) => setStatusFilter(value as StatusFilter)}
+          />
         </CardHeader>
         <CardContent>
-          <p className="mb-4 text-sm text-muted-foreground">
-            Total de juros pendente:{' '}
-            <span className="font-semibold text-amber-700">
-              {formatCurrency(data?.pendingTotal ?? 0)}
-            </span>
-          </p>
           <Table>
             <TableHeader>
               <TableRow>
                 <TableHead>Cliente</TableHead>
-                <TableHead>Referência</TableHead>
-                <TableHead>Juros pendente</TableHead>
-                <TableHead>Principal</TableHead>
+                <TableHead>Vencimento</TableHead>
+                <TableHead>Juros do mês</TableHead>
+                <TableHead>Pago</TableHead>
+                <TableHead>Pendente</TableHead>
                 <TableHead>Status</TableHead>
-                {canEdit && <TableHead />}
+                {canEdit && <TableHead className="w-[1%] whitespace-nowrap" />}
               </TableRow>
             </TableHeader>
             <TableBody>
               {isLoading ? (
                 <TableRow>
-                  <TableCell colSpan={6}>Carregando...</TableCell>
+                  <TableCell colSpan={canEdit ? 7 : 6}>Carregando...</TableCell>
                 </TableRow>
-              ) : !data?.pending.length ? (
+              ) : filteredInstallments.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={6}>
-                    Nenhum juros pendente neste mês.
+                  <TableCell colSpan={canEdit ? 7 : 6}>
+                    Nenhuma parcela de juros neste filtro.
                   </TableCell>
                 </TableRow>
               ) : (
-                data.pending.map((item) => (
+                installmentsPagination.items.map((item) => (
                   <TableRow key={item.cycleId}>
                     <TableCell>
                       <Link
@@ -199,29 +297,32 @@ export default function ReceiptsPage() {
                         {item.customer.nome}
                       </Link>
                     </TableCell>
-                    <TableCell>{item.referencia}</TableCell>
+                    <TableCell>{formatDate(item.vencimento)}</TableCell>
+                    <TableCell>{formatCurrency(item.jurosGerado)}</TableCell>
+                    <TableCell>{formatCurrency(item.jurosPago)}</TableCell>
                     <TableCell>{formatCurrency(item.jurosPendente)}</TableCell>
-                    <TableCell>{formatCurrency(item.principalAtual)}</TableCell>
                     <TableCell>
-                      <Badge variant={item.overdue ? 'destructive' : 'secondary'}>
-                        {item.overdue ? 'Atrasado' : 'Pendente'}
-                      </Badge>
+                      <InterestStatusBadge status={item.status} />
                     </TableCell>
                     {canEdit && (
                       <TableCell>
-                        <Button
-                          size="sm"
-                          onClick={() => {
-                            setSelectedLoan({
-                              loanId: item.loanId,
-                              jurosPendente: item.jurosPendente,
-                              principalAtual: item.principalAtual,
-                            });
-                            setOpen(true);
-                          }}
-                        >
-                          Receber
-                        </Button>
+                        {item.status !== 'PAGO' ? (
+                          <Button
+                            size="sm"
+                            onClick={() => {
+                              setSelectedLoan({
+                                loanId: item.loanId,
+                                jurosPendente: item.jurosPendente,
+                                principalAtual: item.principalAtual,
+                              });
+                              setOpen(true);
+                            }}
+                          >
+                            Receber
+                          </Button>
+                        ) : (
+                          <span className="text-sm text-muted-foreground">—</span>
+                        )}
                       </TableCell>
                     )}
                   </TableRow>
@@ -229,13 +330,20 @@ export default function ReceiptsPage() {
               )}
             </TableBody>
           </Table>
+          <Pagination
+            page={installmentsPagination.page}
+            totalPages={installmentsPagination.totalPages}
+            totalItems={installmentsPagination.totalItems}
+            pageSize={installmentsPagination.pageSize}
+            onPageChange={setInstallmentsPage}
+          />
         </CardContent>
       </Card>
 
       <Card>
         <CardHeader>
           <CardTitle>
-            Recebidos no mês ({data?.received.length ?? 0})
+            Pagamentos registrados ({data?.received.length ?? 0})
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -263,7 +371,7 @@ export default function ReceiptsPage() {
                   </TableCell>
                 </TableRow>
               ) : (
-                data.received.map((payment) => (
+                receivedPagination.items.map((payment) => (
                   <TableRow key={payment.id}>
                     <TableCell>{formatDate(payment.createdAt)}</TableCell>
                     <TableCell>{payment.customer.nome}</TableCell>
@@ -277,6 +385,13 @@ export default function ReceiptsPage() {
               )}
             </TableBody>
           </Table>
+          <Pagination
+            page={receivedPagination.page}
+            totalPages={receivedPagination.totalPages}
+            totalItems={receivedPagination.totalItems}
+            pageSize={receivedPagination.pageSize}
+            onPageChange={setReceivedPage}
+          />
         </CardContent>
       </Card>
 

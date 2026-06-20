@@ -18,6 +18,7 @@ import type { AuthUser } from '@/types';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { InterestStatusBadge } from '@/components/ui/interest-status-badge';
 import {
   Dialog,
   DialogContent,
@@ -201,26 +202,38 @@ export default function LoanDetailPage() {
             <TableHeader>
               <TableRow>
                 <TableHead>Referência</TableHead>
+                <TableHead>Vencimento</TableHead>
                 <TableHead>Base</TableHead>
                 <TableHead>Gerado</TableHead>
                 <TableHead>Pago</TableHead>
                 <TableHead>Pendente</TableHead>
+                <TableHead>Status</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {!loan.interestCycles?.length ? (
                 <TableRow>
-                  <TableCell colSpan={5}>Nenhum ciclo registrado.</TableCell>
+                  <TableCell colSpan={7}>Nenhum ciclo registrado.</TableCell>
                 </TableRow>
               ) : (
                 loan.interestCycles.map((cycle) => (
                   <TableRow key={cycle.id}>
                     <TableCell>{cycle.referencia}</TableCell>
+                    <TableCell>
+                      {cycle.vencimento ? formatDate(cycle.vencimento) : '—'}
+                    </TableCell>
                     <TableCell>{formatCurrency(cycle.principalBase)}</TableCell>
                     <TableCell>{formatCurrency(cycle.jurosGerado)}</TableCell>
                     <TableCell>{formatCurrency(cycle.jurosPago)}</TableCell>
                     <TableCell>
                       {formatCurrency(cycle.jurosPendente ?? 0)}
+                    </TableCell>
+                    <TableCell>
+                      {cycle.status ? (
+                        <InterestStatusBadge status={cycle.status} />
+                      ) : (
+                        '—'
+                      )}
                     </TableCell>
                   </TableRow>
                 ))
