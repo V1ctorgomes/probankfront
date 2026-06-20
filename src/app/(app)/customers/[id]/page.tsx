@@ -7,6 +7,7 @@ import { ArrowLeft, Pencil } from 'lucide-react';
 import api from '@/lib/api';
 import type { Customer } from '@/types';
 import { formatCurrency, formatCpf, formatDate, formatPercent } from '@/lib/format';
+import { loanStatusLabel } from '@/lib/labels';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -135,7 +136,7 @@ export default function CustomerDetailPage() {
                 customer.loans.map((loan) => (
                   <TableRow key={loan.id}>
                     <TableCell>
-                      <Badge>{loan.status}</Badge>
+                      <Badge>{loanStatusLabel[loan.status] ?? loan.status}</Badge>
                     </TableCell>
                     <TableCell>{formatCurrency(loan.principalOriginal)}</TableCell>
                     <TableCell>{formatCurrency(loan.principalAtual)}</TableCell>

@@ -12,6 +12,7 @@ import { ArrowLeft } from 'lucide-react';
 import api from '@/lib/api';
 import type { Loan } from '@/types';
 import { formatCurrency, formatDate, formatPercent } from '@/lib/format';
+import { loanStatusLabel } from '@/lib/labels';
 import { getUser } from '@/lib/auth';
 import type { AuthUser } from '@/types';
 import { Button } from '@/components/ui/button';
@@ -73,6 +74,7 @@ export default function LoanDetailPage() {
       queryClient.invalidateQueries({ queryKey: ['loans'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
       queryClient.invalidateQueries({ queryKey: ['receipts'] });
+      queryClient.invalidateQueries({ queryKey: ['transactions'] });
       reset();
       setOpen(false);
     },
@@ -139,7 +141,7 @@ export default function LoanDetailPage() {
                   ? String((loan.customer as { nome: string }).nome)
                   : 'Empréstimo'}
               </CardTitle>
-              <Badge>{loan.status}</Badge>
+              <Badge>{loanStatusLabel[loan.status] ?? loan.status}</Badge>
             </div>
           </CardHeader>
           <CardContent className="grid gap-4 sm:grid-cols-2">

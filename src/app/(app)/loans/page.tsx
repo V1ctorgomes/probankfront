@@ -9,7 +9,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import api from '@/lib/api';
 import type { Customer, Loan } from '@/types';
-import { formatCurrency, formatDate, formatPercent } from '@/lib/format';
+import { formatCurrency, formatDate, formatPercent, formatCpf } from '@/lib/format';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
@@ -21,13 +21,7 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+import { SimpleSelect } from '@/components/ui/simple-select';
 import {
   Table,
   TableBody,
@@ -37,13 +31,14 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
+import { loanStatusLabel } from '@/lib/labels';
 import { getUser } from '@/lib/auth';
 import type { AuthUser } from '@/types';
 
 const schema = z.object({
   customerId: z.string().uuid(),
   principalOriginal: z.number().positive(),
-  taxaJurosMensal: z.number().min(0).max(1),
+  taxaJurosMensal: z.number().min(0).max(100),
   dataInicio: z.string().min(1),
 });
 
@@ -90,7 +85,7 @@ export default function LoansPage() {
     resolver: zodResolver(schema),
     defaultValues: {
       dataInicio: new Date().toISOString().slice(0, 10),
-      taxaJurosMensal: 0.1,
+      taxaJurosMensal: 10,
     },
   });
 
@@ -98,6 +93,7 @@ export default function LoansPage() {
     mutationFn: (payload: FormData) =>
       api.post('/loans', {
         ...payload,
+        taxaJurosMensal: payload.taxaJurosMensal / 100,
         dataInicio: new Date(payload.dataInicio).toISOString(),
       }),
     onSuccess: () => {
@@ -138,23 +134,15 @@ export default function LoansPage() {
               >
                 <div className="space-y-2">
                   <Label>Cliente</Label>
-                  <Select
-                    value={watch('customerId')}
-                    onValueChange={(value) => {
-                      if (value) setValue('customerId', value);
-                    }}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecione o cliente" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {customers.map((customer) => (
-                        <SelectItem key={customer.id} value={customer.id}>
-                          {customer.nome}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <SimpleSelect
+                    value={watch('customerId') ?? ''}
+                    onChange={(value) => setValue('customerId', value)}
+                    options={customers.map((customer) => ({
+                      value: customer.id,
+                      label: `${customer.nome} — CPF ${formatCpf(customer.cpf)}`,
+                    }))}
+                    placeholder="Selecione o cliente"
+                  />
                 </div>
                 <div className="space-y-2">
                   <Label>Valor principal (R$)</Label>
@@ -165,7 +153,7 @@ export default function LoansPage() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label>Taxa mensal (ex: 0.10 = 10%)</Label>
+                  <Label>Taxa mensal (%)</Label>
                   <Input
                     type="number"
                     step="0.01"
@@ -235,7 +223,7 @@ export default function LoansPage() {
                     <TableCell>{formatPercent(loan.taxaJurosMensal)}</TableCell>
                     <TableCell>
                       <Badge variant={statusVariant[loan.status]}>
-                        {loan.status}
+                        {loanStatusLabel[loan.status] ?? loan.status}
                       </Badge>
                     </TableCell>
                     <TableCell>{formatDate(loan.dataInicio)}</TableCell>

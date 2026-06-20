@@ -31,7 +31,7 @@ export default function AuditPage() {
       <div>
         <h1 className="text-3xl font-bold tracking-tight">Auditoria</h1>
         <p className="text-muted-foreground">
-          Registro de ações dos usuários no sistema
+          Histórico de ações realizadas no sistema
         </p>
       </div>
 
@@ -46,8 +46,8 @@ export default function AuditPage() {
                 <TableHead>Data</TableHead>
                 <TableHead>Usuário</TableHead>
                 <TableHead>Ação</TableHead>
-                <TableHead>Entidade</TableHead>
-                <TableHead>IP</TableHead>
+                <TableHead>Registro</TableHead>
+                <TableHead>Descrição</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -63,13 +63,10 @@ export default function AuditPage() {
                 data?.items.map((log) => (
                   <TableRow key={log.id}>
                     <TableCell>{formatDate(log.createdAt)}</TableCell>
-                    <TableCell>{log.user?.nome ?? 'Sistema'}</TableCell>
-                    <TableCell>{log.action}</TableCell>
-                    <TableCell>
-                      {log.entity}
-                      {log.entityId ? ` #${log.entityId.slice(0, 8)}` : ''}
-                    </TableCell>
-                    <TableCell>{log.ip ?? '-'}</TableCell>
+                    <TableCell>{log.usuario}</TableCell>
+                    <TableCell>{log.acao}</TableCell>
+                    <TableCell>{log.registro}</TableCell>
+                    <TableCell>{log.descricao}</TableCell>
                   </TableRow>
                 ))
               )}

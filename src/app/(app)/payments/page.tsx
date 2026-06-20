@@ -20,13 +20,7 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+import { SimpleSelect } from '@/components/ui/simple-select';
 import {
   Table,
   TableBody,
@@ -80,6 +74,16 @@ export default function PaymentsPage() {
     formState: { isSubmitting },
   } = useForm<FormData>({ resolver: zodResolver(schema) });
 
+  const loanOptions = loans.map((loan) => ({
+    value: loan.id,
+    label: `${loan.customer?.nome ?? 'Cliente'} — saldo ${formatCurrency(loan.principalAtual)} + juros ${formatCurrency(loan.jurosPendentes ?? 0)}`,
+  }));
+
+  const historyOptions = loans.map((loan) => ({
+    value: loan.id,
+    label: loan.customer?.nome ?? 'Cliente',
+  }));
+
   const createMutation = useMutation({
     mutationFn: (payload: FormData) => api.post('/payments', payload),
     onSuccess: () => {
@@ -87,6 +91,7 @@ export default function PaymentsPage() {
       queryClient.invalidateQueries({ queryKey: ['payments'] });
       queryClient.invalidateQueries({ queryKey: ['loans'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+      queryClient.invalidateQueries({ queryKey: ['transactions'] });
       reset();
       setOpen(false);
     },
@@ -117,25 +122,12 @@ export default function PaymentsPage() {
               >
                 <div className="space-y-2">
                   <Label>Contrato</Label>
-                  <Select
-                    value={watch('loanId')}
-                    onValueChange={(value) => {
-                      if (value) setValue('loanId', value);
-                    }}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecione o contrato" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {loans.map((loan) => (
-                        <SelectItem key={loan.id} value={loan.id}>
-                          {loan.customer?.nome} — saldo{' '}
-                          {formatCurrency(loan.principalAtual)} + juros{' '}
-                          {formatCurrency(loan.jurosPendentes ?? 0)}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <SimpleSelect
+                    value={watch('loanId') ?? ''}
+                    onChange={(value) => setValue('loanId', value)}
+                    options={loanOptions}
+                    placeholder="Selecione o contrato"
+                  />
                 </div>
                 <div className="space-y-2">
                   <Label>Valor recebido (R$)</Label>
@@ -157,23 +149,13 @@ export default function PaymentsPage() {
       <Card>
         <CardHeader>
           <CardTitle>Histórico por contrato</CardTitle>
-          <Select
+          <SimpleSelect
             value={selectedLoan}
-            onValueChange={(value) => {
-              if (value) setSelectedLoan(value);
-            }}
-          >
-            <SelectTrigger className="max-w-md">
-              <SelectValue placeholder="Selecione um contrato ativo" />
-            </SelectTrigger>
-            <SelectContent>
-              {loans.map((loan) => (
-                <SelectItem key={loan.id} value={loan.id}>
-                  {loan.customer?.nome}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+            onChange={setSelectedLoan}
+            options={historyOptions}
+            placeholder="Selecione um contrato ativo"
+            className="max-w-md"
+          />
         </CardHeader>
         <CardContent>
           <Table>

@@ -82,6 +82,12 @@ export default function LoginPage() {
             <Button type="submit" className="w-full" disabled={isSubmitting}>
               {isSubmitting ? 'Entrando...' : 'Entrar'}
             </Button>
+            <p className="text-center text-sm text-muted-foreground">
+              Cliente?{' '}
+              <a href="/consulta" className="text-primary hover:underline">
+                Consulte suas parcelas
+              </a>
+            </p>
           </form>
         </CardContent>
       </Card>

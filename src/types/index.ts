@@ -80,12 +80,38 @@ export interface DashboardStats {
 
 export interface AuditLog {
   id: string;
-  action: string;
-  entity: string;
-  entityId?: string | null;
-  ip?: string | null;
   createdAt: string;
-  user?: { id: string; nome: string; email: string } | null;
+  usuario: string;
+  acao: string;
+  registro: string;
+  descricao: string;
+}
+
+export interface Category {
+  id: string;
+  nome: string;
+  tipo: 'INCOME' | 'EXPENSE';
+  ativo: boolean;
+}
+
+export interface TransactionItem {
+  id: string;
+  tipo: 'INCOME' | 'EXPENSE';
+  origem: string;
+  descricao: string;
+  valor: number;
+  data: string;
+  observacoes?: string | null;
+  categoria?: string | null;
+}
+
+export interface TransactionList {
+  items: TransactionItem[];
+  resumo: {
+    entradas: number;
+    saidas: number;
+    resultado: number;
+  };
 }
 
 export interface ReceiptsData {

@@ -8,13 +8,17 @@ import {
   Users,
   HandCoins,
   Banknote,
+  Wallet,
+  CreditCard,
   Shield,
+  Settings,
   LogOut,
   Menu,
   X,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { clearAuth, getUser } from '@/lib/auth';
+import { userRoleLabel } from '@/lib/labels';
 import type { AuthUser } from '@/types';
 import { cn } from '@/lib/utils';
 
@@ -22,7 +26,10 @@ const links = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/customers', label: 'Clientes', icon: Users },
   { href: '/loans', label: 'Empréstimos', icon: HandCoins },
+  { href: '/payments', label: 'Pagamentos', icon: CreditCard },
   { href: '/receipts', label: 'Recebimentos', icon: Banknote },
+  { href: '/movimentacoes', label: 'Movimentações', icon: Wallet },
+  { href: '/configuracoes', label: 'Configurações', icon: Settings, adminOnly: true },
   { href: '/audit', label: 'Auditoria', icon: Shield, adminOnly: true },
 ];
 
@@ -79,7 +86,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <div className="mt-auto space-y-3 border-t pt-4">
           <div className="px-2 text-sm">
             <p className="font-medium">{user?.nome}</p>
-            <p className="text-muted-foreground">{user?.role}</p>
+            <p className="text-muted-foreground">
+              {user?.role ? userRoleLabel[user.role] : ''}
+            </p>
           </div>
           <Button variant="outline" className="w-full" onClick={handleLogout}>
             <LogOut className="mr-2 h-4 w-4" />
