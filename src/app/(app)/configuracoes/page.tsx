@@ -8,6 +8,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import api from '@/lib/api';
 import type { Category } from '@/types';
+import { PageHeader } from '@/components/layout/page-header';
 import { getUser } from '@/lib/auth';
 import type { AuthUser } from '@/types';
 import { Button } from '@/components/ui/button';
@@ -17,7 +18,6 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -31,6 +31,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
+import { ViewTabs } from '@/components/ui/view-tabs';
 
 const schema = z.object({
   nome: z.string().min(2),
@@ -98,6 +99,7 @@ function CategoryTable({
 
 export default function ConfiguracoesPage() {
   const [open, setOpen] = useState(false);
+  const [view, setView] = useState<'income' | 'expense'>('income');
   const [consultaUrl, setConsultaUrl] = useState('/consulta');
   const queryClient = useQueryClient();
   const user = getUser<AuthUser>();
@@ -173,71 +175,65 @@ export default function ConfiguracoesPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Configurações</h1>
-          <p className="text-muted-foreground">
-            Categorias para movimentações financeiras
-          </p>
-        </div>
-        <Dialog open={open} onOpenChange={setOpen}>
-          <DialogTrigger render={<Button>Nova categoria</Button>} />
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Criar categoria</DialogTitle>
-            </DialogHeader>
-            <form
-              onSubmit={handleSubmit((values) => createMutation.mutate(values))}
-              className="space-y-3"
-            >
-              <div className="space-y-2">
-                <Label>Nome</Label>
-                <Input {...register('nome')} />
-              </div>
-              <div className="space-y-2">
-                <Label>Tipo</Label>
-                <SimpleSelect
-                  value={watch('tipo')}
-                  onChange={(value) =>
-                    setValue('tipo', value as FormData['tipo'])
-                  }
-                  options={[
-                    { value: 'INCOME', label: 'Entrada' },
-                    { value: 'EXPENSE', label: 'Saída' },
-                  ]}
-                />
-              </div>
-              <Button type="submit" disabled={isSubmitting}>
-                Salvar
-              </Button>
-            </form>
-          </DialogContent>
-        </Dialog>
-      </div>
+      <PageHeader
+        title="Configurações"
+        description="Categorias para movimentações financeiras"
+        actions={<Button onClick={() => setOpen(true)}>Nova categoria</Button>}
+      />
+
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Criar categoria</DialogTitle>
+          </DialogHeader>
+          <form
+            onSubmit={handleSubmit((values) => createMutation.mutate(values))}
+            className="space-y-3"
+          >
+            <div className="space-y-2">
+              <Label>Nome</Label>
+              <Input {...register('nome')} />
+            </div>
+            <div className="space-y-2">
+              <Label>Tipo</Label>
+              <SimpleSelect
+                value={watch('tipo')}
+                onChange={(value) =>
+                  setValue('tipo', value as FormData['tipo'])
+                }
+                options={[
+                  { value: 'INCOME', label: 'Entrada' },
+                  { value: 'EXPENSE', label: 'Saída' },
+                ]}
+              />
+            </div>
+            <Button type="submit" disabled={isSubmitting}>
+              Salvar
+            </Button>
+          </form>
+        </DialogContent>
+      </Dialog>
 
       <Card>
-        <CardHeader>
-          <CardTitle>Categorias de entrada ({incomeCategories.length})</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <CategoryTable
-            categories={incomeCategories}
-            isLoading={isLoading}
-            emptyMessage="Nenhuma categoria de entrada cadastrada"
-            onToggle={handleToggle}
+        <CardHeader className="gap-4">
+          <ViewTabs
+            tabs={[
+              { id: 'income', label: 'Entradas', count: incomeCategories.length },
+              { id: 'expense', label: 'Saídas', count: expenseCategories.length },
+            ]}
+            value={view}
+            onChange={(value) => setView(value as 'income' | 'expense')}
           />
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Categorias de saída ({expenseCategories.length})</CardTitle>
         </CardHeader>
         <CardContent>
           <CategoryTable
-            categories={expenseCategories}
+            categories={view === 'income' ? incomeCategories : expenseCategories}
             isLoading={isLoading}
-            emptyMessage="Nenhuma categoria de saída cadastrada"
+            emptyMessage={
+              view === 'income'
+                ? 'Nenhuma categoria de entrada cadastrada'
+                : 'Nenhuma categoria de saída cadastrada'
+            }
             onToggle={handleToggle}
           />
         </CardContent>

@@ -17,7 +17,6 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -30,8 +29,10 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Textarea } from '@/components/ui/textarea';
-import { getUser } from '@/lib/auth';
+import { ViewTabs } from '@/components/ui/view-tabs';
+import { PageHeader } from '@/components/layout/page-header';
 import type { AuthUser } from '@/types';
+import { getUser } from '@/lib/auth';
 
 const schema = z.object({
   nome: z.string().min(2),
@@ -154,6 +155,7 @@ export default function CustomersPage() {
   const [open, setOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<Customer | null>(null);
   const [search, setSearch] = useState('');
+  const [view, setView] = useState<'active' | 'inactive'>('active');
   const queryClient = useQueryClient();
   const user = getUser<AuthUser>();
   const canEdit = user?.role !== 'LEITURA';
@@ -229,59 +231,60 @@ export default function CustomersPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Clientes</h1>
-          <p className="text-muted-foreground">Cadastro e consulta de clientes</p>
-        </div>
-        {canEdit && (
-          <Dialog open={open} onOpenChange={setOpen}>
-            <DialogTrigger render={<Button>Novo cliente</Button>} />
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Cadastrar cliente</DialogTitle>
-              </DialogHeader>
-              <form
-                onSubmit={handleSubmit((data) => createMutation.mutate(data))}
-                className="space-y-3"
-              >
-                <div className="space-y-2">
-                  <Label>Nome</Label>
-                  <Input {...register('nome')} />
-                  {errors.nome && (
-                    <p className="text-sm text-destructive">{errors.nome.message}</p>
-                  )}
-                </div>
-                <div className="space-y-2">
-                  <Label>CPF</Label>
-                  <Input {...register('cpf')} />
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-2">
-                    <Label>Telefone</Label>
-                    <Input {...register('telefone')} />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>WhatsApp</Label>
-                    <Input {...register('whatsapp')} />
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <Label>Endereço</Label>
-                  <Input {...register('endereco')} />
-                </div>
-                <div className="space-y-2">
-                  <Label>Observações</Label>
-                  <Textarea {...register('observacoes')} />
-                </div>
-                <Button type="submit" disabled={isSubmitting}>
-                  Salvar
-                </Button>
-              </form>
-            </DialogContent>
-          </Dialog>
-        )}
-      </div>
+      <PageHeader
+        title="Clientes"
+        description="Cadastro e consulta de clientes"
+        actions={
+          canEdit ? (
+            <Button onClick={() => setOpen(true)}>Novo cliente</Button>
+          ) : undefined
+        }
+      />
+
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Cadastrar cliente</DialogTitle>
+          </DialogHeader>
+          <form
+            onSubmit={handleSubmit((data) => createMutation.mutate(data))}
+            className="space-y-3"
+          >
+            <div className="space-y-2">
+              <Label>Nome</Label>
+              <Input {...register('nome')} />
+              {errors.nome && (
+                <p className="text-sm text-destructive">{errors.nome.message}</p>
+              )}
+            </div>
+            <div className="space-y-2">
+              <Label>CPF</Label>
+              <Input {...register('cpf')} />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-2">
+                <Label>Telefone</Label>
+                <Input {...register('telefone')} />
+              </div>
+              <div className="space-y-2">
+                <Label>WhatsApp</Label>
+                <Input {...register('whatsapp')} />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label>Endereço</Label>
+              <Input {...register('endereco')} />
+            </div>
+            <div className="space-y-2">
+              <Label>Observações</Label>
+              <Textarea {...register('observacoes')} />
+            </div>
+            <Button type="submit" disabled={isSubmitting}>
+              Salvar
+            </Button>
+          </form>
+        </DialogContent>
+      </Dialog>
 
       <Input
         placeholder="Buscar por nome ou CPF"
@@ -291,32 +294,26 @@ export default function CustomersPage() {
       />
 
       <Card>
-        <CardHeader>
-          <CardTitle>Clientes ativos ({activeCustomers.length})</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <CustomerTable
-            customers={activeCustomers}
-            isLoading={isLoading}
-            canEdit={canEdit}
-            variant="active"
-            onDeactivate={(id) => deactivateMutation.mutate(id)}
-            onActivate={(id) => activateMutation.mutate(id)}
-            onDelete={setDeleteTarget}
+        <CardHeader className="gap-4">
+          <ViewTabs
+            tabs={[
+              { id: 'active', label: 'Ativos', count: activeCustomers.length },
+              {
+                id: 'inactive',
+                label: 'Inativos',
+                count: inactiveCustomers.length,
+              },
+            ]}
+            value={view}
+            onChange={(value) => setView(value as 'active' | 'inactive')}
           />
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Clientes inativos ({inactiveCustomers.length})</CardTitle>
         </CardHeader>
         <CardContent>
           <CustomerTable
-            customers={inactiveCustomers}
+            customers={view === 'active' ? activeCustomers : inactiveCustomers}
             isLoading={isLoading}
             canEdit={canEdit}
-            variant="inactive"
+            variant={view}
             onDeactivate={(id) => deactivateMutation.mutate(id)}
             onActivate={(id) => activateMutation.mutate(id)}
             onDelete={setDeleteTarget}

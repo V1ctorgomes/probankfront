@@ -22,7 +22,6 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -36,9 +35,11 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
+import { ViewTabs } from '@/components/ui/view-tabs';
 import { loanStatusLabel } from '@/lib/labels';
-import { getUser } from '@/lib/auth';
+import { PageHeader } from '@/components/layout/page-header';
 import type { AuthUser } from '@/types';
+import { getUser } from '@/lib/auth';
 
 const schema = z.object({
   customerId: z.string().uuid(),
@@ -163,6 +164,7 @@ export default function LoansPage() {
   );
 
   const [open, setOpen] = useState(false);
+  const [view, setView] = useState<'active' | 'closed'>('active');
   const queryClient = useQueryClient();
   const user = getUser<AuthUser>();
   const canEdit = user?.role !== 'LEITURA';
@@ -252,99 +254,93 @@ export default function LoansPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Empréstimos</h1>
-          <p className="text-muted-foreground">Contratos e juros mensais</p>
-        </div>
-        {canEdit && (
-          <Dialog open={open} onOpenChange={setOpen}>
-            <DialogTrigger render={<Button>Novo empréstimo</Button>} />
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Criar contrato</DialogTitle>
-              </DialogHeader>
-              <form
-                onSubmit={handleSubmit((data) => createMutation.mutate(data))}
-                className="space-y-3"
-              >
-                <div className="space-y-2">
-                  <Label>Cliente</Label>
-                  <SimpleSelect
-                    value={watch('customerId') ?? ''}
-                    onChange={(value) => setValue('customerId', value)}
-                    options={customers.map((customer) => ({
-                      value: customer.id,
-                      label: `${customer.nome} — CPF ${formatCpf(customer.cpf)}`,
-                    }))}
-                    placeholder="Selecione o cliente"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Valor principal (R$)</Label>
-                  <Input
-                    type="number"
-                    step="0.01"
-                    {...register('principalOriginal', { valueAsNumber: true })}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Taxa mensal (%)</Label>
-                  <Input
-                    type="number"
-                    step="0.01"
-                    {...register('taxaJurosMensal', { valueAsNumber: true })}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Dia de pagamento</Label>
-                  <SimpleSelect
-                    value={String(selectedPaymentDay ?? defaultPaymentDay)}
-                    onChange={handlePaymentDayChange}
-                    options={paymentDayOptions}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Data do primeiro pagamento</Label>
-                  <Input type="date" {...register('dataInicio')} />
-                  <p className="text-xs text-muted-foreground">
-                    Esta data define o vencimento escolhido pelo cliente.
-                  </p>
-                </div>
-                <Button type="submit" disabled={isSubmitting}>
-                  Criar contrato
-                </Button>
-              </form>
-            </DialogContent>
-          </Dialog>
-        )}
-      </div>
+      <PageHeader
+        title="Empréstimos"
+        description="Contratos, vencimentos e juros mensais"
+        actions={
+          canEdit ? (
+            <Button onClick={() => setOpen(true)}>Novo empréstimo</Button>
+          ) : undefined
+        }
+      />
+
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Criar contrato</DialogTitle>
+          </DialogHeader>
+          <form
+            onSubmit={handleSubmit((data) => createMutation.mutate(data))}
+            className="space-y-3"
+          >
+            <div className="space-y-2">
+              <Label>Cliente</Label>
+              <SimpleSelect
+                value={watch('customerId') ?? ''}
+                onChange={(value) => setValue('customerId', value)}
+                options={customers.map((customer) => ({
+                  value: customer.id,
+                  label: `${customer.nome} — CPF ${formatCpf(customer.cpf)}`,
+                }))}
+                placeholder="Selecione o cliente"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Valor principal (R$)</Label>
+              <Input
+                type="number"
+                step="0.01"
+                {...register('principalOriginal', { valueAsNumber: true })}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Taxa mensal (%)</Label>
+              <Input
+                type="number"
+                step="0.01"
+                {...register('taxaJurosMensal', { valueAsNumber: true })}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Dia de pagamento</Label>
+              <SimpleSelect
+                value={String(selectedPaymentDay ?? defaultPaymentDay)}
+                onChange={handlePaymentDayChange}
+                options={paymentDayOptions}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Data do primeiro pagamento</Label>
+              <Input type="date" {...register('dataInicio')} />
+              <p className="text-xs text-muted-foreground">
+                Esta data define o vencimento escolhido pelo cliente.
+              </p>
+            </div>
+            <Button type="submit" disabled={isSubmitting}>
+              Criar contrato
+            </Button>
+          </form>
+        </DialogContent>
+      </Dialog>
 
       <Card>
-        <CardHeader>
-          <CardTitle>Empréstimos ativos ({activeLoans.length})</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <LoanTable
-            loans={activeLoans}
-            isLoading={isLoading}
-            canEdit={canEdit}
-            variant="active"
-            onClose={(id) => closeMutation.mutate(id)}
+        <CardHeader className="gap-4">
+          <ViewTabs
+            tabs={[
+              { id: 'active', label: 'Ativos', count: activeLoans.length },
+              { id: 'closed', label: 'Encerrados', count: closedLoans.length },
+            ]}
+            value={view}
+            onChange={(value) => setView(value as 'active' | 'closed')}
           />
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Empréstimos encerrados ({closedLoans.length})</CardTitle>
         </CardHeader>
         <CardContent>
           <LoanTable
-            loans={closedLoans}
+            loans={view === 'active' ? activeLoans : closedLoans}
             isLoading={isLoading}
             canEdit={canEdit}
-            variant="closed"
+            variant={view}
+            onClose={(id) => closeMutation.mutate(id)}
           />
         </CardContent>
       </Card>

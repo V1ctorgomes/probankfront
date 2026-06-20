@@ -11,6 +11,7 @@ import { toast } from 'sonner';
 import api from '@/lib/api';
 import type { Customer, ReceiptsData } from '@/types';
 import { formatCurrency, formatCpf, formatDate } from '@/lib/format';
+import { PageHeader } from '@/components/layout/page-header';
 import { getUser } from '@/lib/auth';
 import type { AuthUser } from '@/types';
 import { Button } from '@/components/ui/button';
@@ -109,12 +110,10 @@ export default function ReceiptsPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Recebimentos</h1>
-        <p className="text-muted-foreground">
-          Juros a receber e pagamentos do mês selecionado
-        </p>
-      </div>
+      <PageHeader
+        title="Recebimentos"
+        description="Juros a receber e pagamentos do mês selecionado"
+      />
 
       <form
         className="flex flex-wrap items-end gap-3"

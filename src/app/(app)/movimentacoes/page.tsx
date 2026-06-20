@@ -9,6 +9,7 @@ import { toast } from 'sonner';
 import api from '@/lib/api';
 import { formatCurrency, formatDate } from '@/lib/format';
 import { transactionTypeLabel } from '@/lib/labels';
+import { PageHeader } from '@/components/layout/page-header';
 import { getUser } from '@/lib/auth';
 import type { AuthUser, Category, TransactionList } from '@/types';
 import { Button } from '@/components/ui/button';
@@ -18,7 +19,6 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -125,74 +125,73 @@ export default function MovimentacoesPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Movimentações</h1>
-          <p className="text-muted-foreground">
-            Entradas e saídas das finanças pessoais
-          </p>
-        </div>
-        {canEdit && (
-          <Dialog open={open} onOpenChange={setOpen}>
-            <DialogTrigger render={<Button>Nova movimentação</Button>} />
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Registrar movimentação</DialogTitle>
-              </DialogHeader>
-              <form
-                onSubmit={handleSubmit((values) => createMutation.mutate(values))}
-                className="space-y-3"
-              >
-                <div className="space-y-2">
-                  <Label>Tipo</Label>
-                  <SimpleSelect
-                    value={selectedTipo}
-                    onChange={(value) =>
-                      setValue('tipo', value as FormData['tipo'])
-                    }
-                    options={[
-                      { value: 'INCOME', label: 'Entrada' },
-                      { value: 'EXPENSE', label: 'Saída' },
-                    ]}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Descrição</Label>
-                  <Input {...register('descricao')} />
-                </div>
-                <div className="space-y-2">
-                  <Label>Categoria</Label>
-                  <SimpleSelect
-                    value={watch('categoryId') ?? ''}
-                    onChange={(value) => setValue('categoryId', value || undefined)}
-                    options={categoryOptions}
-                    placeholder="Opcional"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Valor (R$)</Label>
-                  <Input
-                    type="number"
-                    step="0.01"
-                    {...register('valor', { valueAsNumber: true })}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Data</Label>
-                  <Input type="date" {...register('data')} />
-                </div>
-                <div className="space-y-2">
-                  <Label>Observações</Label>
-                  <Input {...register('observacoes')} />
-                </div>
-                <Button type="submit" disabled={isSubmitting}>
-                  Salvar
-                </Button>
-              </form>
-            </DialogContent>
-          </Dialog>
-        )}
-      </div>
+      <PageHeader
+        title="Movimentações"
+        description="Entradas e saídas das finanças pessoais"
+        actions={
+          canEdit ? (
+            <Button onClick={() => setOpen(true)}>Nova movimentação</Button>
+          ) : undefined
+        }
+      />
+
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Registrar movimentação</DialogTitle>
+          </DialogHeader>
+          <form
+            onSubmit={handleSubmit((values) => createMutation.mutate(values))}
+            className="space-y-3"
+          >
+            <div className="space-y-2">
+              <Label>Tipo</Label>
+              <SimpleSelect
+                value={selectedTipo}
+                onChange={(value) =>
+                  setValue('tipo', value as FormData['tipo'])
+                }
+                options={[
+                  { value: 'INCOME', label: 'Entrada' },
+                  { value: 'EXPENSE', label: 'Saída' },
+                ]}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Descrição</Label>
+              <Input {...register('descricao')} />
+            </div>
+            <div className="space-y-2">
+              <Label>Categoria</Label>
+              <SimpleSelect
+                value={watch('categoryId') ?? ''}
+                onChange={(value) => setValue('categoryId', value || undefined)}
+                options={categoryOptions}
+                placeholder="Opcional"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Valor (R$)</Label>
+              <Input
+                type="number"
+                step="0.01"
+                {...register('valor', { valueAsNumber: true })}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Data</Label>
+              <Input type="date" {...register('data')} />
+            </div>
+            <div className="space-y-2">
+              <Label>Observações</Label>
+              <Input {...register('observacoes')} />
+            </div>
+            <Button type="submit" disabled={isSubmitting}>
+              Salvar
+            </Button>
+          </form>
+        </DialogContent>
+      </Dialog>
 
       <Card>
         <CardHeader>

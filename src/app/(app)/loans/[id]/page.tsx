@@ -23,7 +23,6 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -95,42 +94,43 @@ export default function LoanDetailPage() {
           Voltar
         </Link>
         {canEdit && loan.status === 'ATIVO' && (
-          <Dialog open={open} onOpenChange={setOpen}>
-            <DialogTrigger render={<Button>Registrar pagamento</Button>} />
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Registrar pagamento</DialogTitle>
-              </DialogHeader>
-              <form
-                onSubmit={handleSubmit((data) => paymentMutation.mutate(data))}
-                className="space-y-4"
-              >
-                <div className="rounded-md bg-muted p-3 text-sm">
-                  <p>
-                    Juros pendentes:{' '}
-                    <strong>{formatCurrency(loan.jurosPendentes ?? 0)}</strong>
-                  </p>
-                  <p>
-                    Principal:{' '}
-                    <strong>{formatCurrency(loan.principalAtual)}</strong>
-                  </p>
-                </div>
-                <div className="space-y-2">
-                  <Label>Valor recebido (R$)</Label>
-                  <Input
-                    type="number"
-                    step="0.01"
-                    {...register('valor', { valueAsNumber: true })}
-                  />
-                </div>
-                <Button type="submit" disabled={isSubmitting}>
-                  Confirmar
-                </Button>
-              </form>
-            </DialogContent>
-          </Dialog>
+          <Button onClick={() => setOpen(true)}>Registrar pagamento</Button>
         )}
       </div>
+
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Registrar pagamento</DialogTitle>
+          </DialogHeader>
+          <form
+            onSubmit={handleSubmit((data) => paymentMutation.mutate(data))}
+            className="space-y-4"
+          >
+            <div className="rounded-xl border border-border bg-muted/50 p-3 text-sm">
+              <p>
+                Juros pendentes:{' '}
+                <strong>{formatCurrency(loan.jurosPendentes ?? 0)}</strong>
+              </p>
+              <p>
+                Principal:{' '}
+                <strong>{formatCurrency(loan.principalAtual)}</strong>
+              </p>
+            </div>
+            <div className="space-y-2">
+              <Label>Valor recebido (R$)</Label>
+              <Input
+                type="number"
+                step="0.01"
+                {...register('valor', { valueAsNumber: true })}
+              />
+            </div>
+            <Button type="submit" disabled={isSubmitting}>
+              Confirmar
+            </Button>
+          </form>
+        </DialogContent>
+      </Dialog>
 
       <div className="grid gap-6 lg:grid-cols-3">
         <Card className="lg:col-span-2">

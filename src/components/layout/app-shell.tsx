@@ -57,13 +57,22 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             href={link.href}
             onClick={onNavigate}
             className={cn(
-              'flex items-center gap-2 rounded-md px-3 py-2 text-sm transition-colors',
+              'group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all',
               active
-                ? 'bg-primary text-primary-foreground'
-                : 'text-muted-foreground hover:bg-muted hover:text-foreground',
+                ? 'bg-white/10 text-white shadow-inner ring-1 ring-white/10'
+                : 'text-sidebar-muted hover:bg-white/5 hover:text-sidebar-foreground',
             )}
           >
-            <Icon className="h-4 w-4" />
+            <span
+              className={cn(
+                'flex h-8 w-8 items-center justify-center rounded-lg transition-colors',
+                active
+                  ? 'bg-sidebar-active/20 text-sidebar-active'
+                  : 'bg-white/5 text-sidebar-muted group-hover:text-sidebar-foreground',
+              )}
+            >
+              <Icon className="h-4 w-4" />
+            </span>
             {link.label}
           </Link>
         );
@@ -72,23 +81,36 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   );
 
   return (
-    <div className="flex min-h-screen bg-muted/30">
-      <aside className="hidden w-64 flex-col border-r bg-background p-4 md:flex">
-        <div className="mb-8 px-2">
-          <p className="text-xl font-bold tracking-tight">Probank</p>
-          <p className="text-sm text-muted-foreground">Gestão de empréstimos</p>
+    <div className="flex min-h-screen bg-background">
+      <aside className="hidden w-72 flex-col bg-sidebar p-5 text-sidebar-foreground md:flex">
+        <div className="mb-8 rounded-2xl border border-white/10 bg-white/5 p-4">
+          <div className="flex items-center gap-3">
+            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-sidebar-active/20 text-sidebar-active">
+              <HandCoins className="h-5 w-5" />
+            </div>
+            <div>
+              <p className="text-lg font-bold tracking-tight text-white">Probank</p>
+              <p className="text-xs text-sidebar-muted">Crédito & cobrança</p>
+            </div>
+          </div>
         </div>
-        <nav className="flex flex-1 flex-col gap-1">
+
+        <nav className="flex flex-1 flex-col gap-1.5">
           <NavLinks />
         </nav>
-        <div className="mt-auto space-y-3 border-t pt-4">
-          <div className="px-2 text-sm">
-            <p className="font-medium">{user?.nome}</p>
-            <p className="text-muted-foreground">
+
+        <div className="mt-auto space-y-3 border-t border-white/10 pt-4">
+          <div className="rounded-xl bg-white/5 px-3 py-3">
+            <p className="text-sm font-medium text-white">{user?.nome}</p>
+            <p className="text-xs text-sidebar-muted">
               {user?.role ? userRoleLabel[user.role] : ''}
             </p>
           </div>
-          <Button variant="outline" className="w-full" onClick={handleLogout}>
+          <Button
+            variant="outline"
+            className="w-full border-white/15 bg-transparent text-sidebar-foreground hover:bg-white/10 hover:text-white"
+            onClick={handleLogout}
+          >
             <LogOut className="mr-2 h-4 w-4" />
             Sair
           </Button>
@@ -98,27 +120,32 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       {mobileOpen && (
         <div className="fixed inset-0 z-50 md:hidden">
           <div
-            className="absolute inset-0 bg-black/40"
+            className="absolute inset-0 bg-slate-950/60 backdrop-blur-sm"
             onClick={() => setMobileOpen(false)}
           />
-          <aside className="relative flex h-full w-72 flex-col bg-background p-4 shadow-xl">
+          <aside className="relative flex h-full w-80 flex-col bg-sidebar p-5 text-sidebar-foreground shadow-2xl">
             <div className="mb-6 flex items-center justify-between">
               <div>
-                <p className="text-lg font-bold">Probank</p>
-                <p className="text-xs text-muted-foreground">Menu</p>
+                <p className="text-lg font-bold text-white">Probank</p>
+                <p className="text-xs text-sidebar-muted">Menu</p>
               </div>
               <Button
                 variant="ghost"
                 size="icon"
+                className="text-sidebar-foreground hover:bg-white/10 hover:text-white"
                 onClick={() => setMobileOpen(false)}
               >
                 <X className="h-5 w-5" />
               </Button>
             </div>
-            <nav className="flex flex-1 flex-col gap-1">
+            <nav className="flex flex-1 flex-col gap-1.5">
               <NavLinks onNavigate={() => setMobileOpen(false)} />
             </nav>
-            <Button variant="outline" className="w-full" onClick={handleLogout}>
+            <Button
+              variant="outline"
+              className="w-full border-white/15 bg-transparent text-sidebar-foreground"
+              onClick={handleLogout}
+            >
               Sair
             </Button>
           </aside>
@@ -126,16 +153,18 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       )}
 
       <div className="flex min-h-screen flex-1 flex-col">
-        <header className="flex items-center gap-3 border-b bg-background p-4 md:hidden">
+        <header className="flex items-center gap-3 border-b border-border bg-card/80 px-4 py-3 backdrop-blur md:hidden">
           <Button variant="outline" size="icon" onClick={() => setMobileOpen(true)}>
             <Menu className="h-5 w-5" />
           </Button>
           <div>
-            <p className="font-semibold">Probank</p>
+            <p className="font-semibold text-foreground">Probank</p>
             <p className="text-xs text-muted-foreground">{user?.nome}</p>
           </div>
         </header>
-        <main className="flex-1 overflow-auto p-4 md:p-8">{children}</main>
+        <main className="flex-1 overflow-auto p-4 md:p-8">
+          <div className="mx-auto max-w-7xl">{children}</div>
+        </main>
       </div>
     </div>
   );

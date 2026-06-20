@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import api from '@/lib/api';
 import type { AuditLog } from '@/types';
 import { formatDate } from '@/lib/format';
+import { PageHeader } from '@/components/layout/page-header';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
   Table,
@@ -28,12 +29,10 @@ export default function AuditPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Auditoria</h1>
-        <p className="text-muted-foreground">
-          Histórico de ações realizadas no sistema
-        </p>
-      </div>
+      <PageHeader
+        title="Auditoria"
+        description="Histórico de ações realizadas no sistema"
+      />
 
       <Card>
         <CardHeader>

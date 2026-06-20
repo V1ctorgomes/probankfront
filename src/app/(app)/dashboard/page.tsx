@@ -4,21 +4,23 @@ import { useQuery } from '@tanstack/react-query';
 import api from '@/lib/api';
 import { formatCurrency } from '@/lib/format';
 import type { DashboardStats } from '@/types';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { PageHeader } from '@/components/layout/page-header';
+import { StatCard } from '@/components/layout/stat-card';
 
 const cards: Array<{
   key: keyof DashboardStats;
   label: string;
   money?: boolean;
+  accent?: 'default' | 'success' | 'warning' | 'danger';
 }> = [
-  { key: 'totalEmprestado', label: 'Total emprestado' },
-  { key: 'principalEmAberto', label: 'Principal em aberto' },
-  { key: 'jurosPendentes', label: 'Juros pendentes' },
-  { key: 'recebidoHoje', label: 'Recebido hoje' },
-  { key: 'recebidoMes', label: 'Recebido no mês' },
-  { key: 'contratosAtivos', label: 'Contratos ativos', money: false },
-  { key: 'contratosEmAtraso', label: 'Contratos em atraso', money: false },
-  { key: 'contratosQuitados', label: 'Contratos quitados', money: false },
+  { key: 'totalEmprestado', label: 'Total emprestado', accent: 'default' },
+  { key: 'principalEmAberto', label: 'Principal em aberto', accent: 'warning' },
+  { key: 'jurosPendentes', label: 'Juros pendentes', accent: 'danger' },
+  { key: 'recebidoHoje', label: 'Recebido hoje', accent: 'success' },
+  { key: 'recebidoMes', label: 'Recebido no mês', accent: 'success' },
+  { key: 'contratosAtivos', label: 'Contratos ativos', money: false, accent: 'default' },
+  { key: 'contratosEmAtraso', label: 'Contratos em atraso', money: false, accent: 'danger' },
+  { key: 'contratosQuitados', label: 'Contratos quitados', money: false, accent: 'success' },
 ];
 
 export default function DashboardPage() {
@@ -32,30 +34,24 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
-        <p className="text-muted-foreground">
-          Indicadores financeiros em tempo real
-        </p>
-      </div>
+      <PageHeader
+        title="Dashboard"
+        description="Visão geral da operação de crédito em tempo real"
+      />
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         {cards.map((card) => (
-          <Card key={card.key}>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                {card.label}
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-2xl font-bold">
-                {isLoading
-                  ? '...'
-                  : card.money === false
-                    ? data?.[card.key]
-                    : formatCurrency(data?.[card.key] ?? 0)}
-              </p>
-            </CardContent>
-          </Card>
+          <StatCard
+            key={card.key}
+            label={card.label}
+            accent={card.accent}
+            value={
+              isLoading
+                ? '...'
+                : card.money === false
+                  ? data?.[card.key]
+                  : formatCurrency(data?.[card.key] ?? 0)
+            }
+          />
         ))}
       </div>
     </div>
